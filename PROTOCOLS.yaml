@@ -1,6 +1,6 @@
 spec_version: 1.0.0
 repository: waldronlab/ai-agent-protocols
-generated_at: '2026-08-08T15:32:55Z'
+generated_at: '2026-08-08T16:05:58Z'
 protocols:
 - name: quality-control-16s
   description: Quality control pipeline for 16S rRNA amplicon sequencing data
