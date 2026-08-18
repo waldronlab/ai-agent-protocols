@@ -9,13 +9,26 @@ Each protocol must be housed in its own directory under `protocols/`. The direct
 The protocol file itself must be named `protocol.md` and placed directly within its directory.
 
 Example:
-`protocols/quality-control-16s/protocol.md`
+`protocols/humann4-sgb-aggregation/protocol.md`
 
 ## The `protocol.md` Format
 
 A protocol file consists of two parts:
 1. **YAML Frontmatter**: Machine-readable metadata (provenance, DOIs, dependencies).
 2. **Markdown Content**: Human-readable instructions for the procedure.
+
+## Protocol Types: Atomic vs. Composite
+
+Protocols follow a modular two-tier design:
+
+1. **Atomic Protocols**:
+   * Implement a single, focused methodological operation.
+   * **Strictly 1 citation:** The `citation` field must contain a single DOI/PMID corresponding to the primary literature where the method was originally published.
+   * Do not compose other protocols (`protocols_used: []`).
+2. **Composite Protocols**:
+   * Implement multi-step workflows or end-to-end pipelines by composing atomic protocols.
+   * **Composition:** List all constituent atomic protocols in `protocols_used`.
+   * **Provenance:** Automatically inherit and aggregate the citations of their constituent atomic protocols upon execution. An optional overarching pipeline publication may be listed in `citation` or `publication_doi`.
 
 ### YAML Frontmatter Schema
 
@@ -32,31 +45,38 @@ All fields must use `snake_case`.
 *   `status`: (String: `draft` | `stable` | `deprecated` | `superseded`) The current status of the protocol.
 
 **Optional Fields:**
+*   `type`: (String: `atomic` | `composite`) Protocol architectural type (defaults to `atomic` if `protocols_used` is empty).
 *   `license`: (String) License identifier (e.g., "CC-BY-4.0").
 *   `protocol_doi`: (String) DOI for this specific protocol artifact (e.g., from protocols.io).
 *   `repository_doi`: (String) DOI for the entire repository/collection housing this protocol (e.g., a Zenodo record).
 *   `publication_doi`: (String) DOI for the peer-reviewed publication that describes or validates this protocol.
-*   `citations`: (Array of Strings) DOIs or PMIDs for the primary literature the protocol relies on.
-*   `protocols_used`: (Array of Objects) Sequential execution dependencies.
+*   `citation`: (String) DOI or PMID for the primary literature that proposed the protocol method.
+*   `upstream_repositories`: (Array of Strings) URLs to source code repositories containing upstream tools or pipeline implementations.
+*   `database_urls`: (Array of Strings) URLs for pre-computed, reference, or previous versions of database artifacts.
+*   `protocols_used`: (Array of Objects) Sequential execution dependencies / constituent protocols (for composite workflows).
     *   `name`: (String) Name of the dependency protocol.
     *   `repository`: (String) The repository hosting the dependency.
     *   `version`: (String) Exact version required.
-*   `key_packages`: (Array of Strings) Primary R/Bioconductor packages used.
+*   `key_packages`: (Array of Strings) Primary R/Bioconductor, Python, or software packages used.
 *   `category`: (String) High-level domain category.
 *   `tags`: (Array of Strings) Searchable keywords.
 
+
 ### Markdown Content Structure
 
-To ensure compatibility with future export tools (like protocols.io integration), the markdown body should loosely follow this structure:
+To ensure compatibility with future export tools (like protocols.io integration), the markdown body should follow this structure:
 
 ```markdown
 # [Title of Protocol]
 
 Brief overview (1-2 sentences).
 
-## Materials (R Packages)
+## Materials
 
-- `PackageName` (Source) — [DOI/Link]
+- **Software & Repositories:**
+  - `ToolName` ([Repository URL]) — Description/version.
+- **Databases & Reference Data:**
+  - `DatabaseName` ([Database URL]) — Baseline reference or previous build URL.
 
 ## Steps
 
@@ -68,44 +88,45 @@ Explanation and code...
 
 ## Notes
 
-Additional context, caveats, or troubleshooting tips.
-
-## References
-
-- List of references corresponding to the DOIs/PMIDs in the `citations` frontmatter field.
+Additional context, caveats, computational/HPC requirements, or troubleshooting tips.
 ```
 
 ## Example Protocol
 
 ```yaml
 ---
-name: quality-control-16s
-description: Quality control pipeline for 16S rRNA amplicon sequencing data
+name: humann4-sgb-aggregation
+description: Download representative isolate genomes and MAGs for MetaPhlAn 4.2 SGBs and subsample overrepresented SGBs.
 version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
 date: 2026-08-08
-status: stable
+status: draft
 license: CC-BY-4.0
+type: atomic
 
 protocol_doi: ~
-repository_doi: 10.5281/zenodo.XXXXXXX
+repository_doi: ~
 publication_doi: ~
 
-citations:
-  - "10.1038/nmeth.3869"
+citation: "10.1016/j.cell.2019.01.001"
+
+upstream_repositories:
+  - "https://github.com/biobakery/metaphlan"
+
+database_urls:
+  - "http://cmprod1.cibio.unitn.it/databases/Metaphlan/mpa_vJan21_CHOCOPhlAnSGB_202103.tar"
 
 protocols_used: []
-key_packages:
-  - curatedMetagenomicData
-  - mia
+key_packages: []
 category: metagenomics
-tags: [16s, quality-control, amplicon]
+tags: [humann, metaphlan, sgb, pangenome, mash]
 ---
 
-# Quality Control for 16S rRNA Amplicon Sequencing
+# SGB Genome Aggregation & Subsampling
 
-This protocol demonstrates how to perform initial quality control...
-...
+Download representative isolate genomes and MAGs for MetaPhlAn 4.2 SGBs...
 ```
+
+

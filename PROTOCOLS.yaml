@@ -1,46 +1,5 @@
 spec_version: 1.0.0
 repository: waldronlab/ai-agent-protocols
-generated_at: '2026-08-08T16:05:58Z'
-protocols:
-- name: quality-control-16s
-  description: Quality control pipeline for 16S rRNA amplicon sequencing data
-  version: 1.0.0
-  authors:
-  - name: Levi Waldron
-    orcid: 0000-0003-2725-0694
-  date: '2026-08-08'
-  status: stable
-  license: CC-BY-4.0
-  protocol_doi: ~
-  repository_doi: 10.5281/zenodo.XXXXXXX
-  publication_doi: ~
-  citations: 10.1038/nmeth.3869
-  protocols_used:
-  - name: taxonomic-classification
-    repository: waldronlab/ai-agent-protocols
-    version: 1.0.0
-  key_packages:
-  - curatedMetagenomicData
-  - mia
-  category: metagenomics
-  tags:
-  - 16s
-  - quality-control
-  - amplicon
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/quality-control-16s/protocol.md
-- name: taxonomic-classification
-  description: Assign taxonomy to 16S amplicon sequences
-  version: 1.0.0
-  authors:
-  - name: Levi Waldron
-  date: '2026-08-08'
-  status: stable
-  protocols_used: []
-  key_packages: dada2
-  category: metagenomics
-  tags:
-  - 16s
-  - taxonomy
-  - dada2
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/taxonomic-classification/protocol.md
+generated_at: '2026-08-18T13:24:45Z'
+protocols: []
 

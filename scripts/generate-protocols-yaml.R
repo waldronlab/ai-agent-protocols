@@ -10,12 +10,11 @@ if (!requireNamespace("yaml", quietly = TRUE)) {
 }
 
 protocols_dir <- "protocols"
-if (!dir.exists(protocols_dir)) {
-  cat("No 'protocols' directory found. Nothing to generate.\n")
-  quit(status = 0)
+protocol_files <- if (dir.exists(protocols_dir)) {
+  list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE, full.names = TRUE)
+} else {
+  character(0)
 }
-
-protocol_files <- list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE, full.names = TRUE)
 
 repository_name <- "waldronlab/ai-agent-protocols" # Should be dynamic based on git repo or config in the future
 

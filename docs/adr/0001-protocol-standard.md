@@ -16,10 +16,10 @@ We will define a single-file markdown format for protocols with strict YAML fron
 2. **Metadata Schema (YAML)**:
    - Must use `snake_case` for all fields.
    - Required fields: `name`, `description`, `version`, `authors`, `date`, `status`.
-   - Optional provenance fields: `protocol_doi`, `repository_doi`, `publication_doi`, `citations`.
+   - Optional provenance fields: `protocol_doi`, `repository_doi`, `publication_doi`, `citation`.
    - Dependency references: `protocols_used` (array specifying `name`, `repository`, and pinned `version`).
    - Trust/Search metadata: `key_packages`, `category`, `tags`.
-3. **Four-Field DOI Taxonomy**: We explicitly separate `protocol_doi` (the artifact itself), `repository_doi` (the parent collection), `publication_doi` (a peer-reviewed paper describing the protocol), and `citations` (papers the protocol is based on).
+3. **Four-Field DOI Taxonomy**: We explicitly separate `protocol_doi` (the artifact itself), `repository_doi` (the parent collection), `publication_doi` (a peer-reviewed paper describing the protocol), and `citation` (paper the protocol is based on).
 4. **Composability**: Protocols can declare sequential execution dependencies via `protocols_used`. The AI agent will execute these in order. (Phase 1 supports single-level dependencies only).
 5. **Trust Metrics**: The schema supports assigning trust tiers (1-5) and computing popularity signals (e.g., package downloads, citation counts). Computation of these signals is deferred to a centralized CI process.
 

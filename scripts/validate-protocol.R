@@ -56,6 +56,49 @@ validate_protocol <- function(file_path) {
     }
   }
   
+  # Check type field if present
+  if (!is.null(frontmatter$type)) {
+    if (!frontmatter$type %in% c("atomic", "composite")) {
+      cat(sprintf("  [ERROR] 'type' must be either 'atomic' or 'composite', found: '%s'\n", frontmatter$type))
+      return(FALSE)
+    }
+  }
+  
+  protocol_type <- if (!is.null(frontmatter$type)) frontmatter$type else {
+    if (length(frontmatter$protocols_used) > 0) "composite" else "atomic"
+  }
+  
+  # Check citation field
+  if (!is.null(frontmatter$citations)) {
+    cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'citation' (singular string).\n", frontmatter$name))
+    return(FALSE)
+  }
+  
+  if (!is.null(frontmatter$citation)) {
+    if (!is.character(frontmatter$citation) || length(frontmatter$citation) != 1) {
+      cat(sprintf("  [ERROR] 'citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
+      return(FALSE)
+    }
+  }
+  
+  # Check protocols_used structure for composite/dependent protocols
+  if (!is.null(frontmatter$protocols_used) && length(frontmatter$protocols_used) > 0) {
+    for (dep in frontmatter$protocols_used) {
+      if (is.null(dep$name) || is.null(dep$repository) || is.null(dep$version)) {
+        cat(sprintf("  [ERROR] Each entry in 'protocols_used' must have 'name', 'repository', and 'version'\n"))
+        return(FALSE)
+      }
+      # Check local repository dependencies
+      if (dep$repository == "waldronlab/ai-agent-protocols") {
+        dep_path <- file.path(protocols_dir, dep$name, "protocol.md")
+        if (!file.exists(dep_path)) {
+          cat(sprintf("  [ERROR] Dependent protocol '%s' not found at '%s'\n", dep$name, dep_path))
+          return(FALSE)
+        }
+      }
+    }
+  }
+  
   cat("  [OK] Valid.\n")
   return(TRUE)
 }
