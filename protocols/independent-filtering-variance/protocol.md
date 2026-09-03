@@ -49,9 +49,9 @@ For every feature, calculate the arithmetic mean across all available samples. T
 Record the number of measurements used for each feature. A feature with insufficient non-missing measurements to calculate the selected summary must not be treated as a low-summary feature; handle it according to the study's missing-data policy and record its exclusion.
 
 ### Step 3: Set the filter cutoff
-Rank features from lowest to highest value of the selected summary. Set the cutoff so that `theta` is the intended fraction of eligible features at the low end of this ranking. With the default `theta = 0.5`, the lower half of eligible features by the selected summary is targeted for removal.
+Let `n_eligible` be the number of eligible features and set `m = floor(theta * n_eligible)`. If `m = 0`, remove no features and define no cutoff. If `m > 0`, rank eligible features from lowest to highest summary value, using a prespecified deterministic tie-breaker such as feature identifier, and remove the first `m` features. Define the cutoff as the largest summary value among the removed features. With the default `theta = 0.5`, `m = floor(0.5 * n_eligible)` eligible features are removed.
 
-If multiple features have the same summary value at the cutoff, apply a prespecified deterministic tie policy. Record the policy and the resulting number of retained and removed features. Do not silently change `theta` because of ties.
+Record the tie-breaker, `n_eligible`, `m`, the cutoff when one exists, and the resulting number of retained and removed features. Do not silently change `theta` because of tied summary values.
 
 ### Step 4: Retain features passing the filter
 Remove the features selected by the cutoff and retain the remaining feature rows with their sample measurements unchanged. Preserve feature identifiers and the mapping of retained features to the original input matrix.
