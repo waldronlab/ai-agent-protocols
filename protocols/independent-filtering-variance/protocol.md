@@ -10,8 +10,7 @@ date: "2026-09-03"
 status: "draft"
 type: "atomic"
 license: "CC-BY-4.0"
-publication_doi: "10.1073/pnas.0914005107"
-citation: "20460310"
+citation: "10.1073/pnas.0914005107"
 protocols_used: []
 category: "Statistical Analysis"
 tags: [filtering, variance, mean, high-throughput]
