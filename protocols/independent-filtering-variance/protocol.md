@@ -48,7 +48,7 @@ For every feature, calculate the arithmetic mean across all available samples. T
 Record the number of measurements used for each feature. A feature with insufficient non-missing measurements to calculate the selected summary must not be treated as a low-summary feature; handle it according to the study's missing-data policy and record its exclusion.
 
 ### Step 3: Set the filter cutoff
-Let `n_eligible` be the number of eligible features and set `m = floor(theta * n_eligible)`. If `m = 0`, remove no features and define no cutoff. If `m > 0`, rank eligible features from lowest to highest summary value, using a prespecified deterministic tie-breaker such as feature identifier, and remove the first `m` features. Define the cutoff as the largest summary value among the removed features. With the default `theta = 0.5`, `m = floor(0.5 * n_eligible)` eligible features are removed.
+Let `n_eligible` be the number of eligible features and set `m = floor(theta * n_eligible)`, where floor(n) returns the greatest integer less than or equal to n. If `m = 0`, remove no features and define no cutoff. If `m > 0`, rank eligible features from lowest to highest summary value, using a prespecified deterministic tie-breaker such as feature identifier, and remove the first `m` features. Define the cutoff as the largest summary value among the removed features. With the default `theta = 0.5`, `m = floor(0.5 * n_eligible)` eligible features are removed.
 
 Record the tie-breaker, `n_eligible`, `m`, the cutoff when one exists, and the resulting number of retained and removed features. Do not silently change `theta` because of tied summary values.
 
@@ -66,3 +66,11 @@ The paper associated with this protocol describes both overall variance filterin
 In the paper's microarray example, overall variance filtering increased discoveries when followed by a standard test, whereas overall mean filtering was less effective, particularly when larger fractions of features were removed. These are dataset-specific empirical results, not a universal ranking of methods or a guarantee of improved performance. Select the filter and `theta` before evaluating downstream results, and document both choices.
 
 This protocol covers only the filtering operation. Any downstream testing or multiple-testing adjustment must be specified and justified separately.
+
+## History & Reviews
+
+#### Reviews
+**Review by Levi Waldron ([0000-0003-2725-0694](https://orcid.org/0000-0003-2725-0694))**
+- **Date:** 2026-08-08
+- **Status:** `approved`
+- **Notes:** I'm not sure whether the specification of features being rows as part of the protocol is helpful. Otherwise the protocol looks good. 
