@@ -14,7 +14,7 @@ In a protocol registry, two issues arise if all protocols are treated uniformly:
 
 ## Decision
 
-We establish an **Atomic vs. Composite** architectural design pattern for all protocols in `ai-agent-protocols`:
+We establish an **Atomic vs. Composite** architectural design pattern for all protocols conforming to this standard:
 
 ### 1. Atomic Protocols
 * **Scope:** Focused on a single, discrete methodological procedure.
