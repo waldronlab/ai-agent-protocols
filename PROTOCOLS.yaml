@@ -1,6 +1,6 @@
 spec_version: 1.0.0
-repository: waldronlab/ai-agent-protocols
-generated_at: '2026-09-11T16:24:39Z'
+repository: waldronlab/agent-protocol-standard
+generated_at: '2026-09-11T17:09:46Z'
 protocols:
 - name: humann4-augmented-clustering
   description: Predict ORFs and perform augmented UniRef-compatible protein clustering.
@@ -43,7 +43,7 @@ protocols:
   - clustering
   - mmseqs2
   - diamond
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-augmented-clustering/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/humann4-augmented-clustering/protocol.md
 - name: humann4-chocophlan-build
   description: Construct the HUMAnN 4 ChocoPhlAn nucleotide pangenome database.
   version: 1.0.0
@@ -83,7 +83,7 @@ protocols:
   - database
   - pangenome
   - bowtie2
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-chocophlan-build/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/humann4-chocophlan-build/protocol.md
 - name: humann4-database-build
   description: End-to-end composite pipeline for constructing HUMAnN 4 reference databases
     from MetaPhlAn 4.2 SGBs.
@@ -118,19 +118,19 @@ protocols:
   - http://huttenhower.sph.harvard.edu/humann_data/mapping/
   protocols_used:
   - name: humann4-sgb-aggregation
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-augmented-clustering
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-chocophlan-build
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-translated-search-build
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-utility-mapping
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   key_packages: []
   category: metagenomics
@@ -140,7 +140,7 @@ protocols:
   - database
   - pipeline
   - composite
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-database-build/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/humann4-database-build/protocol.md
 - name: humann4-sgb-aggregation
   description: Aggregate and subsample isolate genomes and MAGs for MetaPhlAn 4.2
     SGBs.
@@ -181,7 +181,7 @@ protocols:
   - database
   - sgb
   - metaphlan
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-sgb-aggregation/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/humann4-sgb-aggregation/protocol.md
 - name: humann4-translated-search-build
   description: Compile the HUMAnN 4 translated search database.
   version: 1.0.0
@@ -218,7 +218,7 @@ protocols:
   - translated-search
   - diamond
   - uniref
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-translated-search-build/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/humann4-translated-search-build/protocol.md
 - name: humann4-utility-mapping
   description: Generate HUMAnN 4 utility mapping databases for functional annotation.
   version: 1.0.0
@@ -258,7 +258,7 @@ protocols:
   - functional-annotation
   - eggnog-mapper
   - uniprot
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-utility-mapping/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/humann4-utility-mapping/protocol.md
 - name: independent-filtering-variance
   description: Filter high-throughput features by overall variance or mean across
     all samples before a separately specified downstream analysis.
@@ -285,5 +285,5 @@ protocols:
   - variance
   - mean
   - high-throughput
-  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/independent-filtering-variance/protocol.md
+  protocol_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/protocols/independent-filtering-variance/protocol.md
 
