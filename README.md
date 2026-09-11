@@ -22,6 +22,62 @@ Some likely use cases include:
 4. **Filling the Methodological Reproducibility Gap**: Provides the granular operational, environment, and parameter-level details that traditional journal Methods sections often omit, facilitating computational reproducibility with less susceptbility to bitrot or dependency issues.
 5. **A federated registry of AI agent-compatible protocols**: This repository serves as a central registry for AI agent-compatible protocols, designed to allow researchers to independently create their own protocol repositories and federate them into this central registry. 
 
+## Using this standard in your own protocol repository
+
+Protocol repositories federate into the registry here, and need no copy of the tooling: validation
+and index generation are published from this repository as GitHub composite actions, so both stay in
+lockstep with [`PROTOCOL_STANDARD.md`](PROTOCOL_STANDARD.md). Pin them to a release tag.
+
+Lay your protocols out as `protocols/<name>/protocol.md`, then add two workflows.
+
+`.github/workflows/validate.yml` — checks every protocol on each pull request:
+
+```yaml
+name: Validate Protocols
+on:
+  pull_request:
+    paths: ['protocols/**']
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: waldronlab/agent-protocol-standard/actions/validate-protocols@v1
+```
+
+`.github/workflows/generate-index.yml` — regenerates and commits `PROTOCOLS.yaml`, the index other
+agents read:
+
+```yaml
+name: Generate Protocol Index
+on:
+  push:
+    branches: [main]
+    paths: ['protocols/**']
+permissions:
+  contents: write
+jobs:
+  generate-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: waldronlab/agent-protocol-standard/actions/generate-index@v1
+```
+
+Both actions take a `protocols-path` input if your protocols live somewhere other than `protocols/`.
+Neither hardcodes a repository name: `protocol_url` values are built from the repository the workflow
+runs in.
+
+Finally, open a pull request adding your repository to [`registry.yaml`](registry.yaml) so that
+agents discover it.
+
+## Development
+
+*   `Rscript scripts/validate-protocol.R` validates the protocols in this repository.
+*   `Rscript tests/run-tests.R` runs the validator's own test suite against the conforming and
+    deliberately malformed fixtures in `tests/fixtures/`. Each invalid fixture asserts the specific
+    error it is supposed to provoke, so adding a rule to the standard means adding a fixture.
+
 ## License
 
 This repository is dual-licensed:

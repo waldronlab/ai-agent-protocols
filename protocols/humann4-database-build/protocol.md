@@ -37,19 +37,19 @@ database_urls:
 
 protocols_used:
   - name: humann4-sgb-aggregation
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-augmented-clustering
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-chocophlan-build
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-translated-search-build
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
   - name: humann4-utility-mapping
-    repository: waldronlab/ai-agent-protocols
+    repository: waldronlab/agent-protocol-standard
     version: 1.0.0
 
 key_packages: []

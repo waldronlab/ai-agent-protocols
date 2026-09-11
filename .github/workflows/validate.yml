@@ -4,24 +4,32 @@ on:
   pull_request:
     paths:
       - 'protocols/**'
-      - 'scripts/validate-protocol.R'
+      - 'scripts/**'
+      - 'actions/**'
+      - 'tests/**'
 
 jobs:
+  # Dogfood the action this repository publishes, rather than calling the script directly.
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ./actions/validate-protocols
 
-      - name: Setup R
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
           r-version: 'release'
+          use-public-rspm: true
 
       - name: Install dependencies
-        run: |
-          install.packages(c("rmarkdown", "yaml"))
+        run: install.packages(c("rmarkdown", "yaml"))
         shell: Rscript {0}
 
-      - name: Run validation script
-        run: |
-          Rscript scripts/validate-protocol.R
+      - name: Run validator test suite
+        run: Rscript tests/run-tests.R
