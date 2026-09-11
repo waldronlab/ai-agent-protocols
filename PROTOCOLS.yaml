@@ -1,6 +1,6 @@
 spec_version: 1.0.0
 repository: waldronlab/ai-agent-protocols
-generated_at: '2026-09-11T14:18:21Z'
+generated_at: '2026-09-11T15:26:32Z'
 protocols:
 - name: humann4-augmented-clustering
   description: Predict ORFs and perform augmented UniRef-compatible protein clustering.
@@ -8,6 +8,15 @@ protocols:
   authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Curtis Huttenhower
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
   date: '2026-08-08'
   status: draft
   license: CC-BY-4.0
@@ -19,6 +28,7 @@ protocols:
   upstream_repositories:
   - https://github.com/biobakery/humann
   - https://github.com/biobakery/metaphlan
+  - https://github.com/biobakery/biobakery-nextflow
   database_urls:
   - http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/
   - ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/
@@ -40,6 +50,15 @@ protocols:
   authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Curtis Huttenhower
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
   date: '2026-08-08'
   status: draft
   license: CC-BY-4.0
@@ -51,6 +70,7 @@ protocols:
   upstream_repositories:
   - https://github.com/biobakery/humann
   - https://github.com/biobakery/metaphlan
+  - https://github.com/biobakery/biobakery-nextflow
   database_urls:
   - http://huttenhower.sph.harvard.edu/humann_data/chocophlan/
   - http://cmprod1.cibio.unitn.it/databases/chocophlan/
@@ -71,6 +91,15 @@ protocols:
   authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Curtis Huttenhower
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
   date: '2026-08-18'
   status: draft
   license: CC-BY-4.0
@@ -82,6 +111,7 @@ protocols:
   upstream_repositories:
   - https://github.com/biobakery/humann
   - https://github.com/biobakery/metaphlan
+  - https://github.com/biobakery/biobakery-nextflow
   database_urls:
   - http://huttenhower.sph.harvard.edu/humann_data/chocophlan/
   - http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/
@@ -118,6 +148,15 @@ protocols:
   authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Curtis Huttenhower
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
   date: '2026-08-08'
   status: draft
   license: CC-BY-4.0
@@ -129,6 +168,7 @@ protocols:
   upstream_repositories:
   - https://github.com/biobakery/metaphlan
   - https://github.com/biobakery/panphlan
+  - https://github.com/biobakery/biobakery-nextflow
   database_urls:
   - http://cmprod1.cibio.unitn.it/databases/MetaPhlAn/
   - http://cmprod1.cibio.unitn.it/databases/PanPhlAn/
@@ -148,6 +188,15 @@ protocols:
   authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Curtis Huttenhower
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
   date: '2026-08-08'
   status: draft
   license: CC-BY-4.0
@@ -156,7 +205,9 @@ protocols:
   repository_doi: ~
   publication_doi: ~
   citation: 10.7554/eLife.65088
-  upstream_repositories: https://github.com/biobakery/humann
+  upstream_repositories:
+  - https://github.com/biobakery/humann
+  - https://github.com/biobakery/biobakery-nextflow
   database_urls: http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/
   protocols_used: []
   key_packages: []
@@ -174,6 +225,15 @@ protocols:
   authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Curtis Huttenhower
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: '2026-08-18'
+    protocol_version: 1.0.0
+    status: approved
   date: '2026-08-08'
   status: draft
   license: CC-BY-4.0
@@ -185,6 +245,7 @@ protocols:
   upstream_repositories:
   - https://github.com/biobakery/humann
   - https://github.com/eggnogdb/eggnog-mapper
+  - https://github.com/biobakery/biobakery-nextflow
   database_urls:
   - http://huttenhower.sph.harvard.edu/humann_data/mapping/
   - http://huttenhower.sph.harvard.edu/humann_data/legacy_dbs/
