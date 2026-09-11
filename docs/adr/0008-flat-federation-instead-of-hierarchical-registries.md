@@ -32,10 +32,12 @@ by the first outside adopter to depend on them.
 **Trust inheritance is the hard part, and it is not specifiable yet.** The interesting question is
 not how to fetch a nested registry — that is a loop. It is what `trust_tier` an imported entry
 carries: its own, its importer's, the minimum of the two, or none. That question has no answer
-today because `trust_tier` has no definition at all. The only value in existence is `4`, its scale
-and direction are unspecified, and `skills/protocol-runner/SKILL.md:143` still calls trust scores
-"reserved for a future release" while `:36` ranks by them. Inheritance cannot be defined for a
-scale that means nothing; #22 must land first.
+today. ADR 0001 recorded an intended range of 1–5, but that range appears nowhere a runner or
+contributor would find it now — not in `PROTOCOL_STANDARD.md`, not in `registry.yaml`, not in
+`skills/protocol-runner/SKILL.md` — and its direction and per-tier criteria were never written down
+anywhere. The only value in existence is a bare `4`, and `SKILL.md:143` still calls trust scores
+"reserved for a future release" while `:36` ranks candidates by them. Inheritance cannot be defined
+for a scale nobody can currently look up; #22 must land first.
 
 **Recursion is a supply-chain surface.** Importing a registry delegates to a third party the right
 to add repositories to the set an agent will fetch and execute instructions from. It also
@@ -67,18 +69,19 @@ user picks a root and can read it in full.
 
 ### 2. The registry schema is a list of repositories, not a union type
 
-The schema specified in #22 defines one kind of entry. There is no `type` discriminator, and a
-conforming registry that contains an unrecognised entry kind is invalid rather than
-forward-compatible. Reserving a `type` field "for later" would advertise a mechanism that does not
-exist and invite exactly the inheritance question this ADR defers.
+The schema proposed in #22 (not yet landed) defines one kind of entry. Whatever form it takes, it
+should carry no `type` discriminator, and a conforming registry that contains an unrecognised entry
+kind should be invalid rather than forward-compatible. Reserving a `type` field "for later" would
+advertise a mechanism that does not exist and invite exactly the inheritance question this ADR
+defers.
 
-### 3. Ad-hoc attachment covers the remaining use case
+### 3. Ad-hoc attachment is the proposed path for the remaining use case
 
 Private, pre-publication, and internal protocols — the cases a sub-registry is often reached for —
-are addressed by #23, which lets an agent be pointed at index URLs directly, with those nodes
-labelled untrusted by construction. Between choice of root and ad-hoc attachment, the use cases
-hierarchical registries would serve are served, and neither mechanism requires a repository to
-inherit trust it was not granted.
+are the subject of #23 (also not yet landed), which proposes letting an agent be pointed at index
+URLs directly, with those nodes labelled untrusted by construction. Between choice of root and that
+proposed ad-hoc attachment, the use cases hierarchical registries would serve have a path that
+doesn't require a repository to inherit trust it was not granted — once #23 is implemented.
 
 ### 4. The revisit condition is explicit
 
@@ -115,8 +118,9 @@ Reopening means superseding this ADR, not amending it.
 - **#22 has a smaller problem to solve.** `trust_tier` must define trust for directly registered
   repositories only. No inheritance rules, no composition of tiers across import depth.
 - **The set of executable sources stays legible.** Every repository whose protocols an agent may run
-  is named in a file the user chose to read. No third party can add to that set, and there is no
-  fetch depth to reason about at discovery time.
+  is named in a file the user chose to read. An imported registry cannot extend that set — only the
+  root maintainer can, by editing the root itself — and there is no fetch depth to reason about at
+  discovery time.
 - **Cross-community curation is manual, and duplicated entries can drift.** A consortium wanting a
   merged view of several communities must copy those entries into its own `registry.yaml` and keep
   them current. Two roots listing the same repository at different `trust_tier` values is now
