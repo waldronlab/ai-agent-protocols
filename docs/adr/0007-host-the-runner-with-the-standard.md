@@ -20,10 +20,21 @@ a package. The runner encodes **the standard's own semantics**:
 * which `PROTOCOLS.yaml` fields exist and what they mean;
 * the shape of the two-level Method Provenance block, which is the entire point of the format.
 
-Every one of those is defined in `PROTOCOL_STANDARD.md`, in this repository. None is defined by
-Bioconductor. So a change to the standard and the corresponding change to the runner are one change
-split across two repositories and two review processes — which this project has already run into
-more than once while revising the standard.
+These are federation-wide semantics. None of them is Bioconductor's to define, and each is meaningful
+only in terms of the vocabulary `PROTOCOL_STANDARD.md` establishes — the `status` values, the
+frontmatter schema, the index fields, the citation taxonomy.
+
+To be precise about the current state: `PROTOCOL_STANDARD.md` defines that vocabulary, but it does
+*not* yet define the execution rules built on it. Trust ranking, the obligations attached to `draft`,
+`superseded`, and `deprecated`, and the shape of the Method Provenance block exist only in the
+runner's own `SKILL.md`. That is itself part of the problem: a contract every federated repository
+depends on lives, today, in a skill file in another organisation's repository. Co-locating the runner
+with the standard is the precondition for promoting that contract into the standard proper, which is
+filed as follow-up work.
+
+Either way, a change to the standard and the corresponding change to the runner are one change split
+across two repositories and two review processes — which this project has already run into more than
+once while revising the standard.
 
 The consequences of the split are asymmetric. A validator that lags the standard fails loudly. A
 runner that lags it keeps working and quietly means something different: it executes a protocol

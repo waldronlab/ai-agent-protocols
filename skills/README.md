@@ -11,9 +11,14 @@ version with it.
 
 Everything the runner does — how it ranks by `trust_tier`, what it does with a `draft`,
 `superseded`, or `deprecated` protocol, which fields it reads from `PROTOCOLS.yaml`, the shape of
-the provenance block — is specified by [`PROTOCOL_STANDARD.md`](../PROTOCOL_STANDARD.md). A runner
-that lags the standard silently changes what "executed this protocol" means. Keeping them in one
-repository means one pull request changes both. See
+the provenance block — is meaningful only in terms of the vocabulary
+[`PROTOCOL_STANDARD.md`](../PROTOCOL_STANDARD.md) defines, and none of it is any one community's to
+decide. A runner that lags the standard silently changes what "executed this protocol" means, so
+keeping them in one repository means one pull request changes both.
+
+Note that the standard currently defines that *vocabulary* — statuses, schema, index fields — but
+not the execution rules built on it, which live here in the `SKILL.md`. Promoting them into the
+standard is follow-up work that this move makes possible. See
 [ADR 0007](../docs/adr/0007-host-the-runner-with-the-standard.md).
 
 ## Installing

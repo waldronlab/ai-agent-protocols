@@ -26,22 +26,29 @@ Finds and executes citable, versioned analysis protocols from federated reposito
 ### 1. Discover Available Protocols
 
 1. Read `registry.yaml` from the `waldronlab/agent-protocol-standard` repository (or whatever repository the user specified, defaulting to `https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/registry.yaml`).
-2. For each registered entry in that file, fetch its `PROTOCOLS.yaml` index using its `index_url`. Note that registered repositories serve `PROTOCOLS.yaml` entries with the fields this skill relies on (e.g., `name`, `description`, `version`, `status`, `trust_tier`, `type` (`atomic` | `composite`), `citation`, `publication_doi`, `protocol_doi`, `repository_doi`, `license`, `protocol_url`, `upstream_repositories`, `database_urls`, `protocols_used`).
-3. Merge all protocol entries from all fetched indices into a single available protocol list.
+2. For each registered entry in that file, fetch its `PROTOCOLS.yaml` index using its `index_url`. Each protocol entry carries the fields this skill relies on: `name`, `description`, `version`, `date`, `status`, `type` (`atomic` | `composite`), `citation`, `publication_doi`, `protocol_doi`, `repository_doi`, `license`, `protocol_url`, `upstream_repositories`, `database_urls`, `protocols_used`.
+3. Merge all protocol entries from all fetched indices into a single available protocol list. **Carry the parent metadata onto each entry as you merge it**: `trust_tier` comes from the repository's entry in `registry.yaml`, and the repository name from the index's top-level `repository` field. Neither is a property of an individual protocol, and without them the ranking and display below have nothing to work with.
 
 ### 2. Match Protocol to Request
 
-1. Match the user's stated task to the available protocols using `name`, `description`, `category`, and `tags`.
-2. If there are multiple matches, rank them by `trust_tier` (descending), and then by `status` (preferring `stable`).
+1. If the user named a specific repository or version — "the `waldronlab/agent-protocols` version", "v1.2.0" — treat those as **hard filters**, applied before any ranking. If nothing matches exactly, say so and stop rather than falling back to a same-named protocol from another repository or a different release; silently substituting either breaks the provenance this skill exists to preserve.
+2. Match the user's stated task to the remaining protocols using `name`, `description`, `category`, and `tags`.
+3. If there are multiple matches, rank them by `trust_tier` (descending), and then by `status` (preferring `stable`).
 
 ### 3. Present Selection to User
 
 1. Show the top 1-3 matches to the user.
 2. For each match, provide the `name`, repository name, `version`, `status`, `trust_tier`, and `description`.
 3. Ask the user to confirm which protocol to run.
-   - *Warning*: If the chosen protocol has status `draft`, warn the user that it may be unstable.
-   - *Warning*: If the chosen protocol has status `superseded`, warn the user and suggest checking for a newer version or successor protocol.
-   - *Error*: If the chosen protocol has status `deprecated`, refuse to run it unless explicitly overridden.
+
+Once a protocol is selected, resolve its dependencies (step 4) and then apply these status rules to
+**every protocol in the resolved execution chain**, not only the one the user chose. A `stable`
+composite may depend on a protocol that is not, and executing it unannounced would be exactly the
+silent substitution this skill is meant to prevent:
+
+   - *Warning*: status `draft` — warn the user that it may be unstable, naming which protocol in the chain it is.
+   - *Warning*: status `superseded` — warn the user and suggest checking for a newer version or successor protocol.
+   - *Error*: status `deprecated` — refuse to run **any part of the chain** unless explicitly overridden.
 
 ### 4. Resolve Dependencies
 
@@ -52,9 +59,10 @@ Finds and executes citable, versioned analysis protocols from federated reposito
        repository: waldronlab/agent-protocols
        version: 1.0.0
    ```
-2. Verify that each dependency exists in the merged federation index.
+2. Resolve each dependency in the merged federation index by **`name`, `repository`, and exact `version`**. `protocols_used.version` is an exact requirement, not a minimum: running a different release of a declared dependency changes what was executed while the provenance block still claims the declared version. If no entry matches all three, report which dependency could not be resolved and abort.
 3. Order execution: Dependencies must be executed *before* the main protocol, in the order they are declared.
-4. *Constraint*: Composite protocols define single-level execution dependencies across constituent atomic protocols. If a dependency itself has dependencies, inform the user and abort.
+4. Apply the status rules from step 3 to every protocol resolved here before executing anything.
+5. *Constraint*: Composite protocols define single-level execution dependencies across constituent atomic protocols. If a dependency itself has dependencies, inform the user and abort.
 
 ### 5. Fetch Content and Compile Citations
 
@@ -69,7 +77,7 @@ Finds and executes citable, versioned analysis protocols from federated reposito
 
    ### Protocol Citation (Level 1)
    Following: [Author] "[Protocol Title/Name]"
-   Repository: [Repository Name], protocol: [Protocol Name] v[Version]
+   Repository: [Repository Name], protocol: [Protocol Name] v[Version] ([date])
    Repository DOI: [repository_doi if present]
    Protocol DOI: [protocol_doi if present]
    Publication DOI: [publication_doi if present]
@@ -103,7 +111,9 @@ Finds and executes citable, versioned analysis protocols from federated reposito
 2. **Inline Method & Tool Attribution (Level 2):** Embed underlying methodology and software citations directly into the narrative prose at the relevant steps using their DOIs/PMIDs (e.g., *"...using MetaPhlAn 4.2 (DOI: 10.1038/s41587-023-01688-w)"*).
 3. **Departures & Parameters:** Seamlessly incorporate any runtime parameter adaptations or deviations recorded in Step 7 into the text.
 4. **AI Agent Protocols Attribution Subsection (Level 1):** Include a dedicated separate paragraph/subsection naming and citing the executed protocol artifact, repository, version, and protocol/repository DOI:
-   > *"Computational analysis was automated using the AI Agent Protocol `[Protocol Name]` (v`[Version]`, DOI: `[protocol_doi or repository_doi]`) executed via the `protocol-runner` agent skill (`waldronlab/agent-protocol-standard`)."*
+   > *"Computational analysis was automated using the AI Agent Protocol `[Protocol Name]` (v`[Version]`, DOI: `[protocol_doi or repository_doi]`) from `[repository]`, executed via the `protocol-runner` agent skill (`waldronlab/agent-protocol-standard`)."*
+
+   Both DOI fields are optional in the standard and are frequently absent. **Omit the DOI clause entirely when neither `protocol_doi` nor `repository_doi` is present** — a sentence reading "DOI:" with nothing after it is worse than no DOI at all — and name the repository and version instead, which always exist.
 5. **No Style-Specific Bibliography Formatting:** Do not generate formatted bibliographies in arbitrary styles (APA, MLA, BibTeX, etc.); propagate exact DOIs and PMIDs so users can seamlessly import them into their reference manager of choice.
 
 ## Output Format

@@ -84,9 +84,10 @@ than being written twice.
 ## Consequences
 
 - **Old references keep working, but only by redirect.** GitHub 301-redirects the old repository
-  name for git, web, and raw content. The one functional coupling is the registry URL hardcoded in
-  the `bioc-protocol-runner` skill, which the redirect carries until that skill relocates to this
-  repository and is rewritten against the final URLs.
+  name for git, web, and raw content. The one functional coupling was the registry URL hardcoded in
+  the `bioc-protocol-runner` skill; that skill has since moved into this repository as
+  `protocol-runner` and been rewritten against the final URLs, so nothing now depends on the
+  redirect. See [ADR 0007](0007-host-the-runner-with-the-standard.md).
 - **The validator loses its in-repository corpus.** With `protocols/` gone, the only thing exercising
   `scripts/validate-protocol.R` is the fixture suite under `tests/`, which is why that suite was
   built before the content moved rather than after.
