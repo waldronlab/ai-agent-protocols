@@ -7,7 +7,7 @@ This repository defines the standard for AI agent-compatible scientific protocol
 *   [`registry.yaml`](registry.yaml) — the federated repositories agents discover protocols from.
 *   [`docs/adr/`](docs/adr/) — the decisions behind the standard.
 
-The Waldron Lab's own protocols are being moved out to `waldronlab/agent-protocols` (see [ADR 0006](docs/adr/0006-separate-standard-from-protocol-content.md)); until that lands they remain in [`protocols/`](protocols/) here.
+This repository hosts no protocols of its own. The Waldron Lab's protocols are in [`waldronlab/agent-protocols`](https://github.com/waldronlab/agent-protocols), an ordinary federation node with no special standing — see [ADR 0006](docs/adr/0006-separate-standard-from-protocol-content.md).
 
 *This repository was named `waldronlab/ai-agent-protocols` until September 2026. GitHub redirects the old name, but please update pinned references.*
 
@@ -77,15 +77,23 @@ Both actions take a `protocols-path` input if your protocols live somewhere othe
 Neither hardcodes a repository name: `protocol_url` values are built from the repository the workflow
 runs in.
 
+`@v1` is a moving tag, so your repository tracks the standard without a pull request per release —
+which is the point, since a validator that has fallen behind means silently enforcing an older
+standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v1.0.0`
+and update it by hand — or, since a git tag can itself be retargeted, pin a commit SHA, which is the
+only genuinely immutable reference. Note that `generate-index` runs with `contents: write`.
+
 Finally, open a pull request adding your repository to [`registry.yaml`](registry.yaml) so that
 agents discover it.
 
 ## Development
 
-*   `Rscript scripts/validate-protocol.R` validates the protocols in this repository.
-*   `Rscript tests/run-tests.R` runs the validator's own test suite against the conforming and
+*   `Rscript tests/run-tests.R` runs the validator's test suite against the conforming and
     deliberately malformed fixtures in `tests/fixtures/`. Each invalid fixture asserts the specific
-    error it is supposed to provoke, so adding a rule to the standard means adding a fixture.
+    error it is supposed to provoke, so adding a rule to the standard means adding a fixture. With
+    no protocols in this repository, this suite is the validator's only coverage.
+*   `Rscript scripts/validate-protocol.R <dir>` runs the validator against a protocols directory
+    directly — point it at a checkout of a content repository to reproduce a CI failure locally.
 
 ## License
 

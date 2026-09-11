@@ -1,7 +1,7 @@
 registries:
-  - name: waldronlab/agent-protocol-standard
+  - name: waldronlab/agent-protocols
     description: "Waldron Lab analysis protocols"
-    index_url: https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/PROTOCOLS.yaml
+    index_url: https://raw.githubusercontent.com/waldronlab/agent-protocols/main/PROTOCOLS.yaml
     trust_tier: 4
     approved_by: levi-waldron
-    registered_date: 2026-08-08
+    registered_date: 2026-09-11

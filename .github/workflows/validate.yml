@@ -1,22 +1,27 @@
-name: Validate Protocols
+name: Tooling
 
 on:
   pull_request:
     paths:
-      - 'protocols/**'
       - 'scripts/**'
       - 'actions/**'
       - 'tests/**'
+      - '.github/workflows/**'
 
 jobs:
-  # Dogfood the action this repository publishes, rather than calling the script directly.
-  validate:
+  # The composite action is this repository's product, so CI exercises it the way a content
+  # repository does — resolving GITHUB_ACTION_PATH, installing its own dependencies — rather than
+  # only calling the script underneath it. With protocols/ gone, a conforming fixture is what it
+  # runs against.
+  action:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./actions/validate-protocols
+        with:
+          protocols-path: tests/fixtures/valid/basic/protocols
 
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
