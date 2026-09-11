@@ -1,8 +1,13 @@
 # 0002. Combined Registry and Protocols Repository
 
-- **Status:** Accepted
+- **Status:** Superseded in part by [0006](0006-separate-standard-from-protocol-content.md)
 - **Date:** 2026-08-08
 - **Deciders:** Levi Waldron (User), AI Agent
+
+> **Note:** ADR 0006 separates protocol content into `waldronlab/agent-protocols`, so the decision
+> below to host protocols alongside the registry no longer holds. The decision about *where the
+> registry lives* — at the root of this repository, with a later move to a neutral repository
+> anticipated — carries forward unchanged.
 
 ## Context and Problem Statement
 
