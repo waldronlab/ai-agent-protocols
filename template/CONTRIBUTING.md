@@ -43,7 +43,8 @@ describe, which is worse than either.
 
 ## Running the validator locally
 
-Optional — CI runs it on every pull request — but faster to iterate against:
+Optional — CI runs it on every pull request that touches `protocols/` — but faster to iterate
+against:
 
 ```sh
 git clone https://github.com/waldronlab/agent-protocol-standard.git

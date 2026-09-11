@@ -30,9 +30,18 @@ from the standard repository, following this repository's `index_url` to `PROTOC
 following each protocol's `protocol_url`. Those are raw URLs, not the HTML views: an agent following
 the documented URL must receive parseable YAML.
 
+**This only works once this repository is listed in that registry.** A valid `PROTOCOLS.yaml` is not
+enough on its own — nothing points at it until an entry exists, so no agent will ever fetch it. Open
+a pull request against
+[`registry.yaml`](https://github.com/waldronlab/agent-protocol-standard/blob/main/registry.yaml)
+adding this repository with its `index_url`.
+
 ## License
+
+<!-- The template ships no LICENSE file: the choice is yours. Add one and describe it here. The
+     arrangement below is what waldronlab/agent-protocols uses; it is a suggestion, not a default. -->
 
 *   **Scientific Protocols & Documentation** (the contents of `protocols/`, unless otherwise
     specified in a protocol's YAML frontmatter):
     [Creative Commons Attribution 4.0 International (CC-BY-4.0)](https://creativecommons.org/licenses/by/4.0/)
-*   **Anything else in this repository**: [MIT License](LICENSE)
+*   **Anything else in this repository**: MIT — add a `LICENSE` file and link it here.
