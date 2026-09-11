@@ -6,6 +6,12 @@ authors:
   - name: "Otto Infield-Harm"
   - name: "Levi Waldron"
     orcid: "0000-0003-2725-0694"
+reviews:
+  - name: "Levi Waldron"
+    orcid: "0000-0003-2725-0694"
+    date: "2026-09-10"
+    protocol_version: "1.2.1"
+    status: "approved"
 date: "2026-09-03"
 status: "draft"
 type: "atomic"
@@ -68,9 +74,27 @@ In the paper's microarray example, overall variance filtering increased discover
 This protocol covers only the filtering operation. Any downstream testing or multiple-testing adjustment must be specified and justified separately.
 
 ## History & Reviews
+<!-- Newest versions at the top -->
+
+### Version 1.2.1 (2026-09-03)
+
+#### Changes
+- Rewrote the steps to be language-agnostic, removing the R implementation and describing the filtering operation in prose.
+- Added overall mean filtering as an alternative to overall variance filtering, matching the two strategies described in the source paper.
+- Clarified the `theta` cutoff and the use of `floor()` when determining how many features to remove.
+- Removed `publication_doi`, which duplicated `citation`.
 
 #### Reviews
+
 **Review by Levi Waldron ([0000-0003-2725-0694](https://orcid.org/0000-0003-2725-0694))**
 - **Date:** 2026-09-10
 - **Status:** `approved`
-- **Notes:** I'm not sure whether the specification of features being rows as part of the protocol is helpful. Otherwise the protocol looks good. 
+- **Notes:** I'm not sure whether the specification of features being rows as part of the protocol is helpful. Otherwise the protocol looks good.
+
+### Version 1.0.0 (2026-08-28)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+*No reviews yet.*
