@@ -5,6 +5,7 @@ This repository defines the standard for AI agent-compatible scientific protocol
 *   [`PROTOCOL_STANDARD.md`](PROTOCOL_STANDARD.md) — the specification a `protocol.md` must conform to.
 *   [`actions/`](actions/) — composite GitHub Actions that validate protocols and generate a repository's `PROTOCOLS.yaml` index.
 *   [`registry.yaml`](registry.yaml) — the federated repositories agents discover protocols from.
+*   [`skills/`](skills/) — the `protocol-runner` agent skill, whose behaviour the standard defines.
 *   [`docs/adr/`](docs/adr/) — the decisions behind the standard.
 
 This repository hosts no protocols of its own. The Waldron Lab's protocols are in [`waldronlab/agent-protocols`](https://github.com/waldronlab/agent-protocols), an ordinary federation node with no special standing — see [ADR 0006](docs/adr/0006-separate-standard-from-protocol-content.md).

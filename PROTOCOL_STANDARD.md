@@ -1,6 +1,6 @@
 # Protocol Standard
 
-This document defines the standard for publishing AI agent-compatible protocols in any repository federated into this registry. Conforming to this standard ensures that your protocol can be discovered, executed, and correctly cited by the `bioc-protocol-runner` agent skill.
+This document defines the standard for publishing AI agent-compatible protocols in any repository federated into this registry. Conforming to this standard ensures that your protocol can be discovered, executed, and correctly cited by the `protocol-runner` agent skill.
 
 ## File Structure
 
