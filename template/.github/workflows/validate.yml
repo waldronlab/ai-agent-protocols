@@ -1,0 +1,12 @@
+name: Validate Protocols
+
+on:
+  pull_request:
+    paths: ['protocols/**']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: waldronlab/agent-protocol-standard/actions/validate-protocols@v1

@@ -2,7 +2,8 @@
 
 # Usage: Rscript tests/run-tests.R
 #
-# Runs scripts/validate-protocol.R against every fixture under tests/fixtures/.
+# Runs scripts/validate-protocol.R against every fixture under tests/fixtures/, and against the
+# starter protocol in template/, which new content repositories copy.
 #
 #   tests/fixtures/valid/<case>/protocols/<name>/protocol.md    must pass (exit 0)
 #   tests/fixtures/invalid/<case>/protocols/<name>/protocol.md  must fail (exit 1) AND print the
@@ -77,6 +78,25 @@ for (case in cases("invalid")) {
   } else {
     cat(sprintf("  [PASS] invalid/%s\n", case))
     passed <- passed + 1L
+  }
+}
+
+# The starter protocol a new content repository copies must itself conform. It is the first thing an
+# adopter sees, and the one file they are most likely to keep the shape of, so a template that has
+# drifted from the standard teaches the drift.
+template_protocols <- file.path(tests_dir, "..", "template", "protocols")
+if (!dir.exists(template_protocols)) {
+  cat("  [FAIL] template: no template/protocols directory\n")
+  failures <- c(failures, "template")
+} else {
+  result <- run_validator(template_protocols)
+  if (result$status == 0) {
+    cat("  [PASS] template/protocols\n")
+    passed <- passed + 1L
+  } else {
+    cat(sprintf("  [FAIL] template/protocols: the starter protocol does not conform\n%s\n",
+                result$output))
+    failures <- c(failures, "template")
   }
 }
 

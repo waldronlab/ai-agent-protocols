@@ -6,6 +6,7 @@ on:
       - 'scripts/**'
       - 'actions/**'
       - 'tests/**'
+      - 'template/**'
       - '.github/workflows/**'
 
 jobs:
