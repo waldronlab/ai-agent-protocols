@@ -1,0 +1,57 @@
+name: 'Generate protocol index'
+description: 'Generate the PROTOCOLS.yaml federation index from the protocols in a repository.'
+
+inputs:
+  protocols-path:
+    description: 'Directory holding the protocols, relative to the repository root.'
+    required: false
+    default: 'protocols'
+  output:
+    description: 'Path to write the generated index to.'
+    required: false
+    default: 'PROTOCOLS.yaml'
+  commit:
+    description: 'Commit and push the generated index if it changed. Requires contents: write.'
+    required: false
+    default: 'true'
+  commit-message:
+    description: 'Commit message used when the index changes.'
+    required: false
+    default: 'chore: Update PROTOCOLS.yaml [skip ci]'
+  r-version:
+    description: 'R version to install.'
+    required: false
+    default: 'release'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: ${{ inputs.r-version }}
+        use-public-rspm: true
+
+    - name: Install dependencies
+      shell: bash
+      run: Rscript -e 'install.packages(c("rmarkdown", "yaml"))'
+
+    - name: Generate index
+      shell: bash
+      run: |
+        Rscript "$GITHUB_ACTION_PATH/../../scripts/generate-protocols-yaml.R" \
+          "${{ inputs.protocols-path }}" "${{ inputs.output }}"
+
+    - name: Commit and push changes
+      if: inputs.commit == 'true'
+      shell: bash
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git add "${{ inputs.output }}"
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        git commit -m "${{ inputs.commit-message }}"
+        git push

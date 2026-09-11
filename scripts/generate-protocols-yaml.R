@@ -1,6 +1,10 @@
 #!/usr/bin/env Rscript
 
-# Usage: Rscript generate-protocols-yaml.R
+# Usage: Rscript generate-protocols-yaml.R [protocols-dir] [output-file]
+#
+# Defaults to 'protocols' and 'PROTOCOLS.yaml'. Run from the root of the repository holding the
+# protocols: the protocols directory is used verbatim in the generated 'protocol_url' values, so it
+# must be a repository-relative path.
 
 if (!requireNamespace("rmarkdown", quietly = TRUE)) {
   install.packages("rmarkdown", repos = "https://cloud.r-project.org")
@@ -9,14 +13,33 @@ if (!requireNamespace("yaml", quietly = TRUE)) {
   install.packages("yaml", repos = "https://cloud.r-project.org")
 }
 
-protocols_dir <- "protocols"
+local({
+  args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- grep("^--file=", args, value = TRUE)
+  script_dir <- if (length(file_arg) > 0) dirname(sub("^--file=", "", file_arg[1])) else "."
+  source(file.path(script_dir, "repo-utils.R"))
+})
+
+args <- commandArgs(trailingOnly = TRUE)
+protocols_dir <- if (length(args) >= 1 && nzchar(args[1])) args[1] else "protocols"
+output_file <- if (length(args) >= 2 && nzchar(args[2])) args[2] else "PROTOCOLS.yaml"
+
 protocol_files <- if (dir.exists(protocols_dir)) {
   list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE, full.names = TRUE)
 } else {
   character(0)
 }
 
-repository_name <- "waldronlab/ai-agent-protocols" # Should be dynamic based on git repo or config in the future
+repository_name <- detect_repository()
+if (is.na(repository_name)) {
+  stop(
+    "Could not determine which repository these protocols belong to. Set GITHUB_REPOSITORY to ",
+    "'owner/name', or run this script inside a git checkout whose 'origin' remote points at the ",
+    "repository hosting them.",
+    call. = FALSE
+  )
+}
+repository_ref <- detect_ref()
 
 protocols_list <- list()
 
@@ -30,7 +53,8 @@ for (file_path in protocol_files) {
   
   if (!is.null(frontmatter)) {
     # Add protocol URL to the metadata
-    frontmatter$protocol_url <- sprintf("https://raw.githubusercontent.com/%s/main/%s", repository_name, file_path)
+    frontmatter$protocol_url <- sprintf(
+      "https://raw.githubusercontent.com/%s/%s/%s", repository_name, repository_ref, file_path)
     protocols_list[[length(protocols_list) + 1]] <- frontmatter
   }
 }
@@ -43,6 +67,6 @@ index <- list(
 )
 
 yaml_output <- yaml::as.yaml(index)
-writeLines(yaml_output, "PROTOCOLS.yaml")
+writeLines(yaml_output, output_file)
 
-cat(sprintf("Successfully generated PROTOCOLS.yaml with %d protocols.\n", length(protocols_list)))
+cat(sprintf("Successfully generated %s with %d protocols.\n", output_file, length(protocols_list)))

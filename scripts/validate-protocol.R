@@ -1,16 +1,32 @@
 #!/usr/bin/env Rscript
 
-# Usage: Rscript validate-protocol.R
+# Usage: Rscript validate-protocol.R [protocols-dir]
+#
+# Defaults to 'protocols'. Run from the root of the repository holding the protocols.
 
 if (!requireNamespace("rmarkdown", quietly = TRUE)) {
   install.packages("rmarkdown", repos = "https://cloud.r-project.org")
 }
 
-protocols_dir <- "protocols"
+local({
+  args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- grep("^--file=", args, value = TRUE)
+  script_dir <- if (length(file_arg) > 0) dirname(sub("^--file=", "", file_arg[1])) else "."
+  source(file.path(script_dir, "repo-utils.R"))
+})
+
+args <- commandArgs(trailingOnly = TRUE)
+protocols_dir <- if (length(args) >= 1 && nzchar(args[1])) args[1] else "protocols"
+
 if (!dir.exists(protocols_dir)) {
-  cat("No 'protocols' directory found.\n")
+  cat(sprintf("No '%s' directory found.\n", protocols_dir))
   quit(status = 0)
 }
+
+# Used only to recognise a 'protocols_used' dependency that lives in this same repository, whose
+# file we can therefore check for. NA outside a git checkout (a bare tarball, say), in which case
+# the local existence check is skipped rather than failing.
+this_repository <- detect_repository()
 
 protocol_files <- list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE, full.names = TRUE)
 
@@ -414,7 +430,9 @@ validate_protocol <- function(file_path) {
         return(FALSE)
       }
       # Check local repository dependencies
-      if (dep$repository == "waldronlab/ai-agent-protocols") {
+      if (is.na(this_repository)) {
+        cat(sprintf("  [WARN] Cannot determine this repository, so the local availability of dependency '%s' was not checked. Set GITHUB_REPOSITORY to 'owner/name' to enable this check.\n", dep$name))
+      } else if (dep$repository == this_repository) {
         dep_path <- file.path(protocols_dir, dep$name, "protocol.md")
         if (!file.exists(dep_path)) {
           cat(sprintf("  [ERROR] Dependent protocol '%s' not found at '%s'\n", dep$name, dep_path))
