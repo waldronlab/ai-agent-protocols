@@ -34,9 +34,10 @@ We separate the standard from the content, and name each repository after what i
 ### 1. This repository becomes `waldronlab/agent-protocol-standard`
 
 It owns `PROTOCOL_STANDARD.md`, the ADRs, the tooling under `scripts/` and `actions/`, the test
-suite under `tests/`, and `registry.yaml`. It hosts no protocols.
+suite under `tests/`, and `registry.yaml`. Once §2 completes it will host no protocols; the rename
+lands first, so the seven existing protocols remain under `protocols/` until then.
 
-### 2. Protocol content moves to `waldronlab/agent-protocols`
+### 2. Protocol content will move to `waldronlab/agent-protocols`
 
 An ordinary federation node registered in `registry.yaml` like any other, with no special standing.
 The unit of trust in the registry is the repository — `trust_tier` and `approved_by` are properties
@@ -84,7 +85,8 @@ than being written twice.
 
 - **Old references keep working, but only by redirect.** GitHub 301-redirects the old repository
   name for git, web, and raw content. The one functional coupling is the registry URL hardcoded in
-  the `bioc-protocol-runner` skill, which is updated directly rather than left to the redirect.
+  the `bioc-protocol-runner` skill, which the redirect carries until that skill relocates to this
+  repository and is rewritten against the final URLs.
 - **The validator loses its in-repository corpus.** With `protocols/` gone, the only thing exercising
   `scripts/validate-protocol.R` is the fixture suite under `tests/`, which is why that suite was
   built before the content moved rather than after.
