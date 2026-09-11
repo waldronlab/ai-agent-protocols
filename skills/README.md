@@ -1,0 +1,36 @@
+# Agent Skills
+
+Agent skills that are defined by the protocol standard rather than by any one community, and so
+version with it.
+
+*   [`protocol-runner`](protocol-runner/SKILL.md) — discovers protocols across the federation,
+    ranks them by trust and status, resolves dependencies, emits a two-level provenance block before
+    executing anything, and drafts a Methods section afterwards.
+
+## Why these live here
+
+Everything the runner does — how it ranks by `trust_tier`, what it does with a `draft`,
+`superseded`, or `deprecated` protocol, which fields it reads from `PROTOCOLS.yaml`, the shape of
+the provenance block — is specified by [`PROTOCOL_STANDARD.md`](../PROTOCOL_STANDARD.md). A runner
+that lags the standard silently changes what "executed this protocol" means. Keeping them in one
+repository means one pull request changes both. See
+[ADR 0007](../docs/adr/0007-host-the-runner-with-the-standard.md).
+
+## Installing
+
+Skills are plain markdown; there is no package to install. Clone this repository and make the skill
+directory visible to your agent. For Claude Code, symlink it:
+
+```sh
+git clone https://github.com/waldronlab/agent-protocol-standard.git
+ln -s "$PWD/agent-protocol-standard/skills/protocol-runner" ~/.claude/skills/protocol-runner
+```
+
+A symlink rather than a copy, so `git pull` is the whole update process.
+
+## Format
+
+The frontmatter follows [Bioconductor's `SKILL_STANDARD.md`](https://github.com/Bioconductor/ai-agent-skills/blob/devel/SKILL_STANDARD.md)
+— `name`, `description`, `version`, `category`, `author`, plus optional `tags` — so a skill from here
+drops into a collection that follows that convention without modification. The directory name must
+match the frontmatter `name`.
