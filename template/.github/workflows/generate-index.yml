@@ -3,7 +3,11 @@ name: Generate Protocol Index
 on:
   push:
     branches: [main]
-    paths: ['protocols/**']
+    # The index is a function of the protocols *and* of the generator version pinned below, so a
+    # change to this workflow must regenerate it too.
+    paths:
+      - 'protocols/**'
+      - '.github/workflows/generate-index.yml'
 
 permissions:
   contents: write

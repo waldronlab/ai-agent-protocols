@@ -19,8 +19,8 @@ never edit it by hand, and do not expect a hand-written list anywhere to be auth
 ## Contributing a protocol
 
 Read [`PROTOCOL_STANDARD.md`](https://github.com/waldronlab/agent-protocol-standard/blob/main/PROTOCOL_STANDARD.md)
-first; it is the authority on the format, and CI enforces it on every pull request that touches
-`protocols/`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+first; it is the authority on the format, and CI enforces it on every pull request. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Discovery
 
