@@ -38,45 +38,24 @@ Protocol repositories federate into the registry here, and need no copy of the t
 and index generation are published from this repository as GitHub composite actions, so both stay in
 lockstep with [`PROTOCOL_STANDARD.md`](PROTOCOL_STANDARD.md). Pin them to a release tag.
 
-Lay your protocols out as `protocols/<name>/protocol.md`, then add two workflows.
+**Copy the contents of [`template/`](template/) into a new empty repository.** It is a complete
+content node: the two workflows, a README and CONTRIBUTING that name this standard as the authority
+on format, and a conforming starter protocol at `protocols/example-protocol/protocol.md` to rename
+and edit. The starter is validated by this repository's own test suite on every pull request, so it
+cannot quietly fall behind the standard it demonstrates.
 
-`.github/workflows/validate.yml` — checks every protocol on each pull request:
+Then:
 
-```yaml
-name: Validate Protocols
-on:
-  pull_request:
-    paths: ['protocols/**']
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: waldronlab/agent-protocol-standard/actions/validate-protocols@v1
-```
-
-`.github/workflows/generate-index.yml` — regenerates and commits `PROTOCOLS.yaml`, the index other
-agents read:
-
-```yaml
-name: Generate Protocol Index
-on:
-  push:
-    branches: [main]
-    paths: ['protocols/**']
-permissions:
-  contents: write
-jobs:
-  generate-index:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: waldronlab/agent-protocol-standard/actions/generate-index@v1
-```
+1. Replace the placeholders in `README.md` and edit `protocols/example-protocol/` into your first
+   real protocol — the directory name must match the frontmatter `name`.
+2. Add a `LICENSE`. The template deliberately ships none, because the choice is yours; the README
+   describes the dual arrangement this project uses (CC-BY-4.0 for protocols, MIT for everything
+   else).
+3. Push to `main` and let the index generate.
 
 Both actions take a `protocols-path` input if your protocols live somewhere other than `protocols/`.
 Neither hardcodes a repository name: `protocol_url` values are built from the repository the workflow
-runs in.
+runs in, so nothing in the template needs editing to point at you.
 
 `@v1` is a moving tag, so your repository tracks the standard without a pull request per release —
 which is the point, since a validator that has fallen behind means silently enforcing an older
