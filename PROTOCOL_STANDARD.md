@@ -60,6 +60,40 @@ All fields must use `snake_case`.
 *   `key_packages`: (Array of Strings) Primary R/Bioconductor, Python, or software packages used.
 *   `category`: (String) High-level domain category.
 *   `tags`: (Array of Strings) Searchable keywords.
+*   `reviews`: (Array of Objects) Human expert reviews of this protocol, newest first. Machine-readable
+    counterpart of the review blocks in the `## History & Reviews` section; every entry must have a
+    matching markdown block and vice versa. Omit the field entirely if the protocol has not been
+    reviewed.
+    *   `name`: (String) Reviewer's name.
+    *   `orcid`: (String, Optional) Reviewer's ORCID. Optional in exactly the same way as it is for
+        `authors`; when present it must match `^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$`.
+    *   `date`: (Date: YYYY-MM-DD) The date the review was given.
+    *   `protocol_version`: (String) The protocol version that was reviewed. This is frequently
+        *older* than the current `version:` — a reviewer approves a specific release, and the
+        protocol may have moved on since. It must correspond to a version documented in
+        `## History & Reviews`.
+    *   `status`: (String) One of the review statuses defined below.
+
+#### Review Statuses
+
+The `status` of a review is a controlled vocabulary, so that agents across the federation can
+interpret reviews from repositories they have never seen before:
+
+*   `approved`: A domain expert has read and vetted the protocol for scientific soundness.
+*   `verified-with-benchmark`: A domain expert has actively executed the protocol and verified the
+    outputs against a benchmark or expected result.
+*   `changes-requested`: A domain expert has reviewed the protocol and found it broadly sound, but
+    has requested revisions before it can be considered approved.
+*   `deprecated`: A domain expert has reviewed the protocol and found it scientifically invalid,
+    obsolete, or superseded.
+
+Note that this vocabulary is **distinct from the protocol-level `status:` field**, which describes
+the protocol's own lifecycle (`draft` | `stable` | `deprecated` | `superseded`) rather than any
+individual's assessment of it.
+
+There is deliberately no "unreviewed" status. Every status is a claim made by a named reviewer, so a
+version that nobody has reviewed simply has no entry. A machine reader determines that the current
+release is unreviewed when no `reviews:` entry carries a `protocol_version` equal to `version:`.
 
 
 ### Markdown Content Structure
@@ -89,7 +123,89 @@ Explanation and code...
 ## Notes
 
 Additional context, caveats, computational/HPC requirements, or troubleshooting tips.
+
+## History & Reviews
+
+See below.
 ```
+
+### History & Reviews
+
+Every protocol must end with a `## History & Reviews` section. It is a NEWS.md-like feed serving two
+purposes: recording what changed in each release, and recording which human experts vetted which
+release. Keeping it inside `protocol.md` means a protocol remains a single self-contained, portable
+file.
+
+The section must be the **last** `##` section of the file, and its version entries are ordered
+**reverse-chronologically, newest at the top**. Include the template comment beneath the heading so
+that human authors and AI agents prepend rather than append:
+
+```markdown
+## History & Reviews
+<!-- Newest versions at the top -->
+
+### Version 1.1.0 (2026-08-18)
+
+#### Changes
+- Updated `MMseqs2` clustering parameter from `--min-seq-id 0.8` to `--min-seq-id 0.9` for UniRef90 consistency.
+- Added HPC memory requirements to the Notes section.
+
+#### Reviews
+*No reviews yet.*
+
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Jane Doe ([0000-0002-1825-0097](https://orcid.org/0000-0002-1825-0097))**
+- **Date:** 2026-08-10
+- **Status:** `verified-with-benchmark`
+- **Notes:** I ran this protocol against the new MetaPhlAn 4.2 SGB release using the mock community
+  dataset. The memory footprint on our SLURM cluster peaked at 120GB, which is within expected bounds.
+
+**Review by John Roe**
+- **Date:** 2026-08-08
+- **Status:** `changes-requested`
+- **Notes:** The method is sound, but Step 2 needs explicit parameter values before I can recommend it.
+```
+
+Rules:
+
+*   **Version headings** use the form `### Version X.Y.Z (YYYY-MM-DD)`. The date is the **version's
+    release date** — the value of frontmatter `date:` when that version was published — *not* the
+    date the entry was written.
+*   The **topmost version heading must match the frontmatter `version:` field.** Bumping `version:`
+    therefore always means adding a new entry.
+*   Each version entry has a `#### Changes` subsection (bulleted) describing what changed, and a
+    `#### Reviews` subsection.
+*   **Review blocks** are headed `**Review by <Name>**`, optionally followed by a linked ORCID:
+    `**Review by Jane Doe ([0000-0002-1825-0097](https://orcid.org/0000-0002-1825-0097))**`. Each has
+    `- **Date:**`, `- **Status:**` (backticked, from the vocabulary above), and `- **Notes:**` lines.
+    Notes are free text and peer-review-style detail is encouraged.
+*   Every review block must have a corresponding entry in the frontmatter `reviews:` array whose
+    `protocol_version` is the version it appears under, and every frontmatter entry must have a
+    corresponding block.
+
+A brand-new protocol, or a release nobody has reviewed yet, still carries the section — only the
+`#### Reviews` body is a placeholder, and the `reviews:` frontmatter field is omitted entirely:
+
+```markdown
+## History & Reviews
+<!-- Newest versions at the top -->
+
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+*No reviews yet.*
+```
+
+These rules are enforced by `scripts/validate-protocol.R`, which runs on every pull request.
 
 ## Example Protocol
 
@@ -101,6 +217,12 @@ version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+reviews:
+  - name: Jane Doe
+    orcid: 0000-0002-1825-0097
+    date: 2026-08-10
+    protocol_version: 1.0.0
+    status: verified-with-benchmark
 date: 2026-08-08
 status: draft
 license: CC-BY-4.0
@@ -127,6 +249,21 @@ tags: [humann, metaphlan, sgb, pangenome, mash]
 # SGB Genome Aggregation & Subsampling
 
 Download representative isolate genomes and MAGs for MetaPhlAn 4.2 SGBs...
+
+## History & Reviews
+<!-- Newest versions at the top -->
+
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Jane Doe ([0000-0002-1825-0097](https://orcid.org/0000-0002-1825-0097))**
+- **Date:** 2026-08-10
+- **Status:** `verified-with-benchmark`
+- **Notes:** Executed against the MetaPhlAn 4.2 SGB release; outputs matched the expected genome counts.
 ```
 
 

@@ -8,5 +8,6 @@ This directory contains Architecture Decision Records (ADRs) for the `ai-agent-p
 - [0002. Combined Registry and Protocols Repository](0002-combined-registry-and-protocols.md)
 - [0003. Protocol Provenance and Resource Metadata Refinements](0003-protocol-provenance-and-resource-metadata-refinements.md)
 - [0004. Atomic and Composite Protocols](0004-atomic-and-composite-protocols.md)
+- [0005. Protocol History and Reviews](0005-protocol-history-and-reviews.md)
 
 
