@@ -68,10 +68,19 @@ agents discover it.
 
 ## Development
 
-*   `Rscript tests/run-tests.R` runs the validator's test suite against the conforming and
-    deliberately malformed fixtures in `tests/fixtures/`. Each invalid fixture asserts the specific
-    error it is supposed to provoke, so adding a rule to the standard means adding a fixture. With
-    no protocols in this repository, this suite is the validator's only coverage.
+*   `Rscript tests/run-tests.R` runs the whole suite. With no protocols in this repository, it is
+    the tooling's only coverage:
+    *   the validator against the conforming and deliberately malformed fixtures in
+        `tests/fixtures/`, and against the starter protocol in `template/`. Each invalid fixture
+        asserts the specific error it is supposed to provoke, so adding a rule to the standard means
+        adding a fixture.
+    *   `tests/test-repo-utils.R` — the repository and ref detection helpers, across the remote URL
+        forms git actually produces. A local path must yield `NA` rather than a plausible but
+        invented slug, since every `protocol_url` in a generated index is built from that answer.
+    *   `tests/test-generator.R` — that the index names the detected repository and ref, copies
+        frontmatter through whole, and **refuses to write at all** when it finds no protocols or
+        cannot determine the repository. The index-generation action commits its output, so a wrong
+        or empty index would be published without anyone looking at it.
 *   `Rscript scripts/validate-protocol.R <dir>` runs the validator against a protocols directory
     directly — point it at a checkout of a content repository to reproduce a CI failure locally.
 

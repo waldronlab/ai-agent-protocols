@@ -2,15 +2,20 @@
 
 # Usage: Rscript tests/run-tests.R
 #
-# Runs scripts/validate-protocol.R against every fixture under tests/fixtures/, and against the
-# starter protocol in template/, which new content repositories copy.
+# The whole test suite. Three parts:
 #
-#   tests/fixtures/valid/<case>/protocols/<name>/protocol.md    must pass (exit 0)
-#   tests/fixtures/invalid/<case>/protocols/<name>/protocol.md  must fail (exit 1) AND print the
-#                                                               message in <case>/expected.txt
+#   1. scripts/validate-protocol.R against every fixture under tests/fixtures/, and against the
+#      starter protocol in template/, which new content repositories copy:
 #
-# To add a case, create the directory and (for an invalid case) its expected.txt; nothing here
-# needs editing.
+#        tests/fixtures/valid/<case>/protocols/<name>/protocol.md    must pass (exit 0)
+#        tests/fixtures/invalid/<case>/protocols/<name>/protocol.md  must fail (exit 1) AND print
+#                                                                    the message in expected.txt
+#
+#      To add a case, create the directory and (for an invalid case) its expected.txt; nothing here
+#      needs editing.
+#
+#   2. tests/test-repo-utils.R  — unit tests for the repository and ref detection helpers.
+#   3. tests/test-generator.R   — the index generator's output and its refusals.
 
 tests_dir <- local({
   args <- commandArgs(trailingOnly = FALSE)
@@ -43,6 +48,18 @@ cases <- function(kind) {
 
 failures <- character(0)
 passed <- 0L
+
+# Assertion helper for the unit tests sourced at the end, which report into the same tally.
+check <- function(label, ok, detail = NULL) {
+  if (isTRUE(ok)) {
+    cat(sprintf("  [PASS] %s\n", label))
+    passed <<- passed + 1L
+  } else {
+    cat(sprintf("  [FAIL] %s%s\n", label,
+                if (is.null(detail)) "" else paste0("\n           ", detail)))
+    failures <<- c(failures, label)
+  }
+}
 
 for (case in cases("valid")) {
   path <- file.path(fixtures_dir, "valid", case, "protocols")
@@ -120,10 +137,13 @@ for (run in empty_runs) {
   }
 }
 
+source(file.path(tests_dir, "test-repo-utils.R"))
+source(file.path(tests_dir, "test-generator.R"))
+
 cat("\n")
 if (length(failures) > 0) {
   cat(sprintf("%d passed, %d FAILED: %s\n", passed, length(failures),
               paste(failures, collapse = ", ")))
   quit(status = 1)
 }
-cat(sprintf("All %d validator tests passed.\n", passed))
+cat(sprintf("All %d tests passed.\n", passed))
