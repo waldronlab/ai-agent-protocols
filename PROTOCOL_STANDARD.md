@@ -181,20 +181,22 @@ that human authors and AI agents prepend rather than append:
 
 Rules:
 
-*   **Version headings** use the form `### Version X.Y.Z (YYYY-MM-DD)`. The date is the **version's
-    release date** — the value of frontmatter `date:` when that version was published — *not* the
-    date the entry was written.
-*   The **topmost version heading must match the frontmatter `version:` field.** Bumping `version:`
-    therefore always means adding a new entry.
-*   Each version entry has a `#### Changes` subsection (bulleted) describing what changed, and a
-    `#### Reviews` subsection.
+*   Every level-3 heading in the section is a **version heading**, of the form
+    `### Version X.Y.Z (YYYY-MM-DD)`. The date is the **version's release date** — the value of
+    frontmatter `date:` when that version was published — *not* the date the entry was written.
+*   The **topmost version entry must match the frontmatter `version:` and `date:` fields**, since it
+    describes the current release. Bumping `version:` therefore always means adding a new entry.
+*   Each version entry has a `#### Changes` subsection listing what changed as **at least one bullet
+    point**, and a `#### Reviews` subsection.
 *   **Review blocks** are headed `**Review by <Name>**`, optionally followed by a linked ORCID:
-    `**Review by Jane Doe ([0000-0002-1825-0097](https://orcid.org/0000-0002-1825-0097))**`. Each has
-    `- **Date:**`, `- **Status:**` (backticked, from the vocabulary above), and `- **Notes:**` lines.
-    Notes are free text and peer-review-style detail is encouraged.
+    `**Review by Jane Doe ([0000-0002-1825-0097](https://orcid.org/0000-0002-1825-0097))**`. Each
+    requires a `- **Date:**` line, a `- **Status:**` line (backticked, from the vocabulary above),
+    and a `- **Notes:**` line. Notes are free text and peer-review-style detail is encouraged.
 *   Every review block must have a corresponding entry in the frontmatter `reviews:` array whose
     `protocol_version` is the version it appears under, and every frontmatter entry must have a
-    corresponding block.
+    corresponding block. Where the two representations record the same fact — the date, the status,
+    and the ORCID when the markdown gives one — they must agree, so that a machine reader and a human
+    reader of the same protocol never draw different conclusions.
 
 A brand-new protocol, or a release nobody has reviewed yet, still carries the section — only the
 `#### Reviews` body is a placeholder, and the `reviews:` frontmatter field is omitted entirely:

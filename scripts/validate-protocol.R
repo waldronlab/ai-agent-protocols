@@ -58,7 +58,9 @@ validate_history <- function(file_path, frontmatter) {
       trimws(section[later_section[1]])))
   }
 
-  version_idx <- grep("^###[[:space:]]+Version", section)
+  # Every level-3 heading in this section must be a version entry. Selecting only the well-formed
+  # ones would silently skip a typo'd heading ('### Verson 1.1.0 (...)') and everything under it.
+  version_idx <- grep("^###[[:space:]]", section)
   if (length(version_idx) == 0) {
     cat("  [ERROR] '## History & Reviews' has no '### Version X.Y.Z (YYYY-MM-DD)' entries.\n")
     return(FALSE)
@@ -66,22 +68,25 @@ validate_history <- function(file_path, frontmatter) {
 
   # Parse the version headings
   versions <- character(length(version_idx))
+  heading_dates <- character(length(version_idx))
   for (k in seq_along(version_idx)) {
     heading <- section[version_idx[k]]
     if (!grepl(version_heading_pattern, heading)) {
       errors <- c(errors, sprintf(
         "Malformed version heading '%s'; expected '### Version X.Y.Z (YYYY-MM-DD)'", trimws(heading)))
       versions[k] <- NA_character_
+      heading_dates[k] <- NA_character_
       next
     }
     versions[k] <- sub(version_heading_pattern, "\\1", heading)
-    heading_date <- sub(version_heading_pattern, "\\2", heading)
+    heading_dates[k] <- sub(version_heading_pattern, "\\2", heading)
     if (!grepl(semver_pattern, versions[k])) {
       errors <- c(errors, sprintf(
         "Version '%s' in '## History & Reviews' is not semantic versioning (X.Y.Z)", versions[k]))
     }
-    if (!is_valid_date(heading_date)) {
-      errors <- c(errors, sprintf("Invalid date '%s' in heading '%s'", heading_date, trimws(heading)))
+    if (!is_valid_date(heading_dates[k])) {
+      errors <- c(errors, sprintf(
+        "Invalid date '%s' in heading '%s'", heading_dates[k], trimws(heading)))
     }
   }
 
@@ -102,16 +107,26 @@ validate_history <- function(file_path, frontmatter) {
     }
   }
 
+  # The top entry describes the current release, so it must agree with the frontmatter on both the
+  # version and the release date.
   fm_version <- as.character(frontmatter$version)
   if (parseable[1] && !identical(versions[1], fm_version)) {
     errors <- c(errors, sprintf(
       "Top entry in '## History & Reviews' is version '%s', but frontmatter declares version '%s'",
       versions[1], fm_version))
   }
+  fm_date <- as.character(frontmatter$date)
+  if (!is.na(heading_dates[1]) && !identical(heading_dates[1], fm_date)) {
+    errors <- c(errors, sprintf(
+      "Top entry in '## History & Reviews' is dated '%s', but frontmatter declares date '%s'. The heading date is the version's release date.",
+      heading_dates[1], fm_date))
+  }
 
   # Parse the review blocks under each version
   bounds <- c(version_idx, length(section) + 1)
-  md_reviews <- data.frame(version = character(0), name = character(0), stringsAsFactors = FALSE)
+  md_reviews <- data.frame(
+    version = character(0), name = character(0), date = character(0),
+    status = character(0), orcid = character(0), stringsAsFactors = FALSE)
 
   for (k in seq_along(version_idx)) {
     label <- if (is.na(versions[k])) trimws(section[version_idx[k]]) else versions[k]
@@ -121,8 +136,22 @@ validate_history <- function(file_path, frontmatter) {
       character(0)
     }
 
-    if (!any(grepl("^####[[:space:]]+Changes[[:space:]]*$", body))) {
+    changes_idx <- grep("^####[[:space:]]+Changes[[:space:]]*$", body)
+    if (length(changes_idx) == 0) {
       errors <- c(errors, sprintf("Version %s is missing a '#### Changes' subsection", label))
+    } else {
+      subsequent <- grep("^####[[:space:]]", body)
+      next_heading <- subsequent[subsequent > changes_idx[1]]
+      changes_end <- if (length(next_heading) > 0) next_heading[1] - 1 else length(body)
+      changes_body <- if (changes_end >= changes_idx[1] + 1) {
+        body[(changes_idx[1] + 1):changes_end]
+      } else {
+        character(0)
+      }
+      if (!any(grepl("^-[[:space:]]+[^[:space:]]", changes_body))) {
+        errors <- c(errors, sprintf(
+          "Version %s has an empty '#### Changes' subsection; list what changed as bullet points", label))
+      }
     }
 
     reviews_idx <- grep("^####[[:space:]]+Reviews[[:space:]]*$", body)
@@ -132,34 +161,83 @@ validate_history <- function(file_path, frontmatter) {
     }
     reviews_body <- if (reviews_idx[1] < length(body)) body[(reviews_idx[1] + 1):length(body)] else character(0)
 
+    # Each review block runs from its '**Review by ...**' heading to the next one, so that the
+    # Date/Status/Notes lines are attributed to the reviewer they belong to.
+    block_starts <- grep("^\\*\\*Review by", reviews_body)
+    block_bounds <- c(block_starts, length(reviews_body) + 1)
     reviewer_names <- character(0)
-    for (block in grep("^\\*\\*Review by", reviews_body, value = TRUE)) {
-      matched <- regmatches(block, regexec("^\\*\\*Review by[[:space:]]+(.+)\\*\\*[[:space:]]*$", block))[[1]]
+
+    for (b in seq_along(block_starts)) {
+      heading <- reviews_body[block_starts[b]]
+      block <- if (block_bounds[b + 1] - 1 >= block_starts[b] + 1) {
+        reviews_body[(block_starts[b] + 1):(block_bounds[b + 1] - 1)]
+      } else {
+        character(0)
+      }
+
+      matched <- regmatches(heading, regexec("^\\*\\*Review by[[:space:]]+(.+)\\*\\*[[:space:]]*$", heading))[[1]]
       if (length(matched) < 2) {
         errors <- c(errors, sprintf(
           "Malformed review heading '%s' under version %s; expected '**Review by <Name>**'",
-          trimws(block), label))
+          trimws(heading), label))
         next
       }
       who <- matched[2]
+      block_orcid <- NA_character_
       linked_orcid <- regmatches(who, regexec("\\(\\[([^]]*)\\]\\([^)]*\\)\\)[[:space:]]*$", who))[[1]]
-      if (length(linked_orcid) >= 2 && !grepl(orcid_pattern, linked_orcid[2])) {
-        errors <- c(errors, sprintf(
-          "Invalid ORCID '%s' in review block under version %s", linked_orcid[2], label))
+      if (length(linked_orcid) >= 2) {
+        block_orcid <- linked_orcid[2]
+        if (!grepl(orcid_pattern, block_orcid)) {
+          errors <- c(errors, sprintf(
+            "Invalid ORCID '%s' in review block under version %s", block_orcid, label))
+        }
       }
-      reviewer_names <- c(reviewer_names, strip_orcid_suffix(who))
-    }
+      reviewer <- strip_orcid_suffix(who)
+      reviewer_names <- c(reviewer_names, reviewer)
 
-    for (status_line in grep("^-[[:space:]]+\\*\\*Status:\\*\\*", reviews_body, value = TRUE)) {
-      quoted <- regmatches(status_line, regexec("`([^`]*)`", status_line))[[1]]
-      if (length(quoted) < 2) {
+      block_date <- NA_character_
+      date_line <- grep("^-[[:space:]]+\\*\\*Date:\\*\\*", block, value = TRUE)
+      if (length(date_line) == 0) {
         errors <- c(errors, sprintf(
-          "Review status line '%s' under version %s must give a backtick-quoted status",
-          trimws(status_line), label))
-      } else if (!quoted[2] %in% review_statuses) {
+          "Review by '%s' under version %s is missing a '- **Date:**' line", reviewer, label))
+      } else {
+        block_date <- trimws(sub("^-[[:space:]]+\\*\\*Date:\\*\\*", "", date_line[1]))
+        if (!is_valid_date(block_date)) {
+          errors <- c(errors, sprintf(
+            "Review by '%s' under version %s has an invalid date '%s' (expected YYYY-MM-DD)",
+            reviewer, label, block_date))
+        }
+      }
+
+      block_status <- NA_character_
+      status_line <- grep("^-[[:space:]]+\\*\\*Status:\\*\\*", block, value = TRUE)
+      if (length(status_line) == 0) {
         errors <- c(errors, sprintf(
-          "Invalid review status '%s' under version %s. Must be one of: %s",
-          quoted[2], label, paste(review_statuses, collapse = ", ")))
+          "Review by '%s' under version %s is missing a '- **Status:**' line", reviewer, label))
+      } else {
+        quoted <- regmatches(status_line[1], regexec("`([^`]*)`", status_line[1]))[[1]]
+        if (length(quoted) < 2) {
+          errors <- c(errors, sprintf(
+            "Review by '%s' under version %s must give a backtick-quoted status", reviewer, label))
+        } else {
+          block_status <- quoted[2]
+          if (!block_status %in% review_statuses) {
+            errors <- c(errors, sprintf(
+              "Invalid review status '%s' under version %s. Must be one of: %s",
+              block_status, label, paste(review_statuses, collapse = ", ")))
+          }
+        }
+      }
+
+      if (!any(grepl("^-[[:space:]]+\\*\\*Notes:\\*\\*", block))) {
+        errors <- c(errors, sprintf(
+          "Review by '%s' under version %s is missing a '- **Notes:**' line", reviewer, label))
+      }
+
+      if (!is.na(versions[k])) {
+        md_reviews <- rbind(md_reviews, data.frame(
+          version = versions[k], name = reviewer, date = block_date,
+          status = block_status, orcid = block_orcid, stringsAsFactors = FALSE))
       }
     }
 
@@ -173,15 +251,13 @@ validate_history <- function(file_path, frontmatter) {
       errors <- c(errors, sprintf(
         "Version %s has review blocks but is also marked '*No reviews yet.*'", label))
     }
-    if (length(reviewer_names) > 0 && !is.na(versions[k])) {
-      md_reviews <- rbind(md_reviews, data.frame(
-        version = versions[k], name = reviewer_names, stringsAsFactors = FALSE))
-    }
   }
 
   # Validate the frontmatter 'reviews' array. Absent or empty is valid: an unreviewed protocol
   # simply has no entries.
-  fm_reviews <- data.frame(version = character(0), name = character(0), stringsAsFactors = FALSE)
+  fm_reviews <- data.frame(
+    version = character(0), name = character(0), date = character(0),
+    status = character(0), orcid = character(0), stringsAsFactors = FALSE)
   if (!is.null(frontmatter$reviews)) {
     if (!is.list(frontmatter$reviews)) {
       errors <- c(errors, "'reviews' must be a list of objects")
@@ -219,20 +295,43 @@ validate_history <- function(file_path, frontmatter) {
             who, reviewed_version))
         }
         fm_reviews <- rbind(fm_reviews, data.frame(
-          version = reviewed_version, name = who, stringsAsFactors = FALSE))
+          version = reviewed_version, name = who, date = as.character(review$date),
+          status = status,
+          orcid = if (is.null(review$orcid)) NA_character_ else as.character(review$orcid),
+          stringsAsFactors = FALSE))
       }
     }
   }
 
-  # The markdown blocks and the frontmatter array must describe exactly the same set of reviews
+  # The markdown blocks and the frontmatter array must describe the same reviews. Membership alone
+  # is not enough: the duplicated date, status, and ORCID must agree too, or a machine reader and a
+  # human reader of the same protocol would draw different conclusions.
   review_key <- function(df) {
     if (nrow(df) == 0) character(0) else paste0("version ", df$version, ", reviewer '", df$name, "'")
   }
-  for (key in setdiff(review_key(md_reviews), review_key(fm_reviews))) {
+  md_keys <- review_key(md_reviews)
+  fm_keys <- review_key(fm_reviews)
+  for (key in setdiff(md_keys, fm_keys)) {
     errors <- c(errors, sprintf("Review block for %s has no matching entry in the frontmatter 'reviews' array", key))
   }
-  for (key in setdiff(review_key(fm_reviews), review_key(md_reviews))) {
+  for (key in setdiff(fm_keys, md_keys)) {
     errors <- c(errors, sprintf("Frontmatter review for %s has no matching '**Review by ...**' block under that version", key))
+  }
+  for (key in intersect(md_keys, fm_keys)) {
+    from_md <- md_reviews[md_keys == key, ][1, ]
+    from_fm <- fm_reviews[fm_keys == key, ][1, ]
+    for (field in c("date", "status", "orcid")) {
+      md_value <- from_md[[field]]
+      fm_value <- from_fm[[field]]
+      # A missing markdown value has already been reported on its own terms, and an ORCID may
+      # legitimately be recorded in the frontmatter only.
+      if (is.na(md_value)) next
+      if (!identical(md_value, fm_value)) {
+        errors <- c(errors, sprintf(
+          "Review for %s disagrees between the markdown block and the frontmatter: %s is '%s' in the section but '%s' in 'reviews'",
+          key, field, md_value, fm_value))
+      }
+    }
   }
 
   if (length(errors) > 0) {
