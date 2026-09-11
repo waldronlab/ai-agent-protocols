@@ -28,6 +28,7 @@ citation: "10.1016/j.cell.2019.01.001"
 upstream_repositories:
   - "https://github.com/biobakery/humann"
   - "https://github.com/biobakery/metaphlan"
+  - "https://github.com/biobakery/biobakery-nextflow"
 
 database_urls:
   - "http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/"

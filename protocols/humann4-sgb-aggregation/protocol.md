@@ -28,6 +28,7 @@ citation: "10.1016/j.cell.2019.01.001"
 upstream_repositories:
   - "https://github.com/biobakery/metaphlan"
   - "https://github.com/biobakery/panphlan"
+  - "https://github.com/biobakery/biobakery-nextflow"
 
 database_urls:
   - "http://cmprod1.cibio.unitn.it/databases/MetaPhlAn/"

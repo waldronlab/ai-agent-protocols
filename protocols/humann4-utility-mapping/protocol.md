@@ -28,6 +28,7 @@ citation: "10.7554/eLife.65088"
 upstream_repositories:
   - "https://github.com/biobakery/humann"
   - "https://github.com/eggnogdb/eggnog-mapper"
+  - "https://github.com/biobakery/biobakery-nextflow"
 
 database_urls:
   - "http://huttenhower.sph.harvard.edu/humann_data/mapping/"
