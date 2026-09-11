@@ -6,6 +6,7 @@ on:
       - 'scripts/**'
       - 'actions/**'
       - 'tests/**'
+      - '.github/workflows/**'
 
 jobs:
   # The composite action is this repository's product, so CI exercises it the way a content

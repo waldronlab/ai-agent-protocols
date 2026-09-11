@@ -7,7 +7,7 @@ This repository defines the standard for AI agent-compatible scientific protocol
 *   [`registry.yaml`](registry.yaml) — the federated repositories agents discover protocols from.
 *   [`docs/adr/`](docs/adr/) — the decisions behind the standard.
 
-This repository hosts no protocols of its own. The Waldron Lab's are in [`waldronlab/agent-protocols`](https://github.com/waldronlab/agent-protocols), an ordinary federation node with no special standing — see [ADR 0006](docs/adr/0006-separate-standard-from-protocol-content.md).
+This repository hosts no protocols of its own. The Waldron Lab's protocols are in [`waldronlab/agent-protocols`](https://github.com/waldronlab/agent-protocols), an ordinary federation node with no special standing — see [ADR 0006](docs/adr/0006-separate-standard-from-protocol-content.md).
 
 *This repository was named `waldronlab/ai-agent-protocols` until September 2026. GitHub redirects the old name, but please update pinned references.*
 
@@ -79,8 +79,9 @@ runs in.
 
 `@v1` is a moving tag, so your repository tracks the standard without a pull request per release —
 which is the point, since a validator that has fallen behind means silently enforcing an older
-standard than you claim to follow. If you need the action to be immutable, pin `@v1.0.0` or a commit
-SHA instead and accept updating it by hand. Note that `generate-index` runs with `contents: write`.
+standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v1.0.0`
+and update it by hand — or, since a git tag can itself be retargeted, pin a commit SHA, which is the
+only genuinely immutable reference. Note that `generate-index` runs with `contents: write`.
 
 Finally, open a pull request adding your repository to [`registry.yaml`](registry.yaml) so that
 agents discover it.
