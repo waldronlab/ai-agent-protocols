@@ -1,6 +1,6 @@
 spec_version: 1.0.0
 repository: waldronlab/ai-agent-protocols
-generated_at: '2026-09-11T15:26:32Z'
+generated_at: '2026-09-11T16:24:39Z'
 protocols:
 - name: humann4-augmented-clustering
   description: Predict ORFs and perform augmented UniRef-compatible protein clustering.
@@ -267,6 +267,12 @@ protocols:
   - name: Otto Infield-Harm
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+  reviews:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+    date: '2026-09-10'
+    protocol_version: 1.2.1
+    status: approved
   date: '2026-09-03'
   status: draft
   type: atomic
