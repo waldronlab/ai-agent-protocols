@@ -7,21 +7,27 @@
 # so sourcing a sibling file is safe.
 
 # "git@github.com:owner/name.git" or "https://github.com/owner/name.git" -> "owner/name".
-# Returns NA for anything that is not a recognisable owner/name pair (a local path, for instance).
+# Returns NA for anything that is not a remote URL naming an owner/name pair. A local path remote
+# must not be accepted: "/tmp/protocols" would otherwise yield the plausible but entirely invented
+# slug "tmp/protocols".
 parse_repository_url <- function(url) {
   url <- trimws(url)
   if (!nzchar(url)) {
     return(NA_character_)
   }
+  # Trailing slashes first, so that a remote written "owner/name.git/" still loses its suffix.
+  url <- sub("/+$", "", url)
   url <- sub("\\.git$", "", url)
   url <- sub("/+$", "", url)
 
   if (grepl("^[^/]+@[^/:]+:", url)) {
     url <- sub("^[^/]+@[^/:]+:", "", url) # scp-like syntax
-  } else {
+  } else if (grepl("^[a-zA-Z][a-zA-Z0-9+.-]*://", url)) {
     url <- sub("^[a-zA-Z][a-zA-Z0-9+.-]*://", "", url) # scheme
     url <- sub("^[^/]*@", "", url) # userinfo
     url <- sub("^[^/]+/", "", url) # host
+  } else {
+    return(NA_character_)
   }
   url <- sub("^/+", "", url)
 
@@ -49,10 +55,13 @@ detect_repository <- function() {
 
 # The branch that generated URLs should point at. On GitHub Actions this is the branch being built,
 # except for pull_request events, where GITHUB_REF_NAME is a synthetic "<number>/merge" ref that
-# would produce URLs nobody can fetch.
+# would produce URLs nobody can fetch; there the branch the PR targets is what the merged index will
+# describe. "main" is only the last resort, since a repository's default branch may be named
+# anything.
 detect_ref <- function() {
   if (identical(Sys.getenv("GITHUB_EVENT_NAME"), "pull_request")) {
-    return("main")
+    base_ref <- Sys.getenv("GITHUB_BASE_REF")
+    return(if (nzchar(base_ref)) base_ref else "main")
   }
   from_env <- Sys.getenv("GITHUB_REF_NAME")
   if (nzchar(from_env)) from_env else "main"

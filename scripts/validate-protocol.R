@@ -18,9 +18,13 @@ local({
 args <- commandArgs(trailingOnly = TRUE)
 protocols_dir <- if (length(args) >= 1 && nzchar(args[1])) args[1] else "protocols"
 
+# A validation run that validated nothing must not report success: as a published action, the most
+# likely cause is a mistyped protocols path, and a green check would say the protocols are fine when
+# none were read.
 if (!dir.exists(protocols_dir)) {
-  cat(sprintf("No '%s' directory found.\n", protocols_dir))
-  quit(status = 0)
+  cat(sprintf("  [ERROR] No '%s' directory found. Pass the protocols directory as the first argument.\n",
+              protocols_dir))
+  quit(status = 1)
 }
 
 # Used only to recognise a 'protocols_used' dependency that lives in this same repository, whose
@@ -29,6 +33,10 @@ if (!dir.exists(protocols_dir)) {
 this_repository <- detect_repository()
 
 protocol_files <- list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE, full.names = TRUE)
+if (length(protocol_files) == 0) {
+  cat(sprintf("  [ERROR] No 'protocol.md' files found under '%s'.\n", protocols_dir))
+  quit(status = 1)
+}
 
 required_fields <- c("name", "description", "version", "authors", "date", "status")
 

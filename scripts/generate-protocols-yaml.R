@@ -24,10 +24,18 @@ args <- commandArgs(trailingOnly = TRUE)
 protocols_dir <- if (length(args) >= 1 && nzchar(args[1])) args[1] else "protocols"
 output_file <- if (length(args) >= 2 && nzchar(args[2])) args[2] else "PROTOCOLS.yaml"
 
-protocol_files <- if (dir.exists(protocols_dir)) {
-  list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE, full.names = TRUE)
-} else {
-  character(0)
+# An empty index is never the right answer. The action that runs this script commits its output by
+# default, so silently writing 'protocols: []' because of a mistyped path would replace a populated
+# federation index with nothing.
+if (!dir.exists(protocols_dir)) {
+  stop(sprintf("No '%s' directory found. Pass the protocols directory as the first argument.",
+               protocols_dir), call. = FALSE)
+}
+
+protocol_files <- list.files(protocols_dir, pattern = "protocol\\.md$", recursive = TRUE,
+                             full.names = TRUE)
+if (length(protocol_files) == 0) {
+  stop(sprintf("No 'protocol.md' files found under '%s'.", protocols_dir), call. = FALSE)
 }
 
 repository_name <- detect_repository()

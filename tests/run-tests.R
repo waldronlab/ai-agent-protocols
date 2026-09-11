@@ -46,12 +46,7 @@ passed <- 0L
 for (case in cases("valid")) {
   path <- file.path(fixtures_dir, "valid", case, "protocols")
   result <- run_validator(path)
-  if (result$status == 0 && !grepl("[OK] Valid.", result$output, fixed = TRUE)) {
-    # The validator exits 0 when it finds no protocols at all, so a mislaid fixture would
-    # otherwise pass without validating anything.
-    cat(sprintf("  [FAIL] valid/%s: the validator found no protocols under %s\n", case, path))
-    failures <- c(failures, sprintf("valid/%s", case))
-  } else if (result$status == 0) {
+  if (result$status == 0) {
     cat(sprintf("  [PASS] valid/%s\n", case))
     passed <- passed + 1L
   } else {
@@ -81,6 +76,26 @@ for (case in cases("invalid")) {
     failures <- c(failures, sprintf("invalid/%s", case))
   } else {
     cat(sprintf("  [PASS] invalid/%s\n", case))
+    passed <- passed + 1L
+  }
+}
+
+# A run that validated nothing must not report success. As a published action the likeliest cause is
+# a mistyped protocols path, and a green check would claim the protocols are fine when none were
+# read.
+empty_dir <- file.path(tempdir(), "empty-protocols")
+dir.create(empty_dir, showWarnings = FALSE, recursive = TRUE)
+empty_runs <- list(
+  list(label = "missing protocols directory", path = file.path(tempdir(), "no-such-directory")),
+  list(label = "protocols directory holding no protocol.md", path = empty_dir)
+)
+for (run in empty_runs) {
+  result <- run_validator(run$path)
+  if (result$status == 0) {
+    cat(sprintf("  [FAIL] empty/%s: the validator passed without validating anything\n", run$label))
+    failures <- c(failures, sprintf("empty/%s", run$label))
+  } else {
+    cat(sprintf("  [PASS] empty/%s\n", run$label))
     passed <- passed + 1L
   }
 }
