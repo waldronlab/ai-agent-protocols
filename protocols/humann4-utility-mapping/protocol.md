@@ -5,6 +5,15 @@ version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+reviews:
+  - name: Curtis Huttenhower
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
 date: 2026-08-08
 status: draft
 license: CC-BY-4.0
@@ -68,4 +77,22 @@ Generate separate mapping files for each ontology (e.g. `map_uniref90_to_ko.txt`
 
 - **Integration with bioBakery:** This is the final step in the HUMAnN 4 database generation workflow. The resulting TSV tables are placed in the HUMAnN utility mapping directory (`humann_config --update database_folders utility_mapping <path>`) and are utilized by downstream utilities like `humann_regroup_table`.
 
+## History & Reviews
+<!-- Newest versions at the top -->
 
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Curtis Huttenhower**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.
+
+**Review by Eric Franzosa**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.

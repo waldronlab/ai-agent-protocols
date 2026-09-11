@@ -5,6 +5,15 @@ version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+reviews:
+  - name: Curtis Huttenhower
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
 date: 2026-08-08
 status: draft
 license: CC-BY-4.0
@@ -57,4 +66,22 @@ Build a `DIAMOND` index (e.g., `augmented_uniref90.dmnd`) from the merged FASTA 
 - **Fallback Translated Search:** This database serves as the fallback translated search target in the HUMAnN pipeline, allowing functional profiling of reads that do not map to the specific ChocoPhlAn pangenomes of identified species.
 - Configured in HUMAnN via `humann_config --update database_folders protein <path>`.
 
+## History & Reviews
+<!-- Newest versions at the top -->
 
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Curtis Huttenhower**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.
+
+**Review by Eric Franzosa**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.

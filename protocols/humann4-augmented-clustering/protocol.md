@@ -5,6 +5,15 @@ version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+reviews:
+  - name: Curtis Huttenhower
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
 date: 2026-08-08
 status: draft
 license: CC-BY-4.0
@@ -72,4 +81,22 @@ Compile a comprehensive TSV mapping file linking every original ORF ID (from all
 - **HPC Cluster Scalability:** Predicting ORFs and performing all-against-UniRef alignment across millions of SGB genes requires high-memory cluster nodes and multi-threaded MMseqs2/DIAMOND jobs.
 - This protocol bridges the gap between characterized UniProt proteins and novel ORFs discovered via large-scale MAG assembly in MetaPhlAn 4.2.
 
+## History & Reviews
+<!-- Newest versions at the top -->
 
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Curtis Huttenhower**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.
+
+**Review by Eric Franzosa**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.

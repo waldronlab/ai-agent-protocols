@@ -5,6 +5,15 @@ version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+reviews:
+  - name: Curtis Huttenhower
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
 date: 2026-08-18
 status: draft
 license: CC-BY-4.0
@@ -19,6 +28,7 @@ citation: "10.7554/eLife.65088"
 upstream_repositories:
   - "https://github.com/biobakery/humann"
   - "https://github.com/biobakery/metaphlan"
+  - "https://github.com/biobakery/biobakery-nextflow"
 
 database_urls:
   - "http://huttenhower.sph.harvard.edu/humann_data/chocophlan/"
@@ -82,3 +92,23 @@ Execute `humann4-utility-mapping` to extract UniProtKB annotations for standard 
 
 - **HPC Execution:** This end-to-end workflow is designed for high-performance computing clusters with SLURM/PBS orchestration or workflow engines (e.g., Snakemake/Nextflow).
 - **Provenance & Citations:** Executing this composite pipeline incorporates primary literature methodology citations from Pasolli et al. (2019) (*Cell*) and Beghini et al. (2021) (*eLife*).
+
+## History & Reviews
+<!-- Newest versions at the top -->
+
+### Version 1.0.0 (2026-08-18)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Curtis Huttenhower**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail. Suggested adding detail to the section "### Step 1: SGB Genome Aggregation & Subsampling".
+
+**Review by Eric Franzosa**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail. Suggested adding detail to the section "### Step 1: SGB Genome Aggregation & Subsampling".

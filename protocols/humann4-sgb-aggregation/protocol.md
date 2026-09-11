@@ -5,6 +5,15 @@ version: 1.0.0
 authors:
   - name: Levi Waldron
     orcid: 0000-0003-2725-0694
+reviews:
+  - name: Curtis Huttenhower
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
+  - name: Eric Franzosa
+    date: 2026-08-18
+    protocol_version: 1.0.0
+    status: approved
 date: 2026-08-08
 status: draft
 license: CC-BY-4.0
@@ -61,5 +70,22 @@ Select a representative subset that maximizes the Mash distances to preserve the
 - **Computational Context:** This is the first step in the HUMAnN 4 database generation pipeline. End-to-end execution across tens of thousands of SGBs is typically executed in parallel on high-performance computing (HPC) clusters.
 - SGBs with fewer than 100 members do not require subsampling.
 
+## History & Reviews
+<!-- Newest versions at the top -->
 
+### Version 1.0.0 (2026-08-08)
 
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+
+**Review by Curtis Huttenhower**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.
+
+**Review by Eric Franzosa**
+- **Date:** 2026-08-18
+- **Status:** `approved`
+- **Notes:** Reviewed briefly. It seemed correct but light on detail.
