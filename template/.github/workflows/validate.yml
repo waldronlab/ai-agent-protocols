@@ -1,8 +1,9 @@
 name: Validate Protocols
 
+# No paths filter, so "CI validates every protocol on every pull request" is simply true. Add one
+# back if your repository grows large enough for the Actions minutes to matter.
 on:
   pull_request:
-    paths: ['protocols/**']
 
 jobs:
   validate:

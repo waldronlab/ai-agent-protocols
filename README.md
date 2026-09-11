@@ -41,8 +41,8 @@ lockstep with [`PROTOCOL_STANDARD.md`](PROTOCOL_STANDARD.md). Pin them to a rele
 **Copy the contents of [`template/`](template/) into a new empty repository.** It is a complete
 content node: the two workflows, a README and CONTRIBUTING that name this standard as the authority
 on format, and a conforming starter protocol at `protocols/example-protocol/protocol.md` to rename
-and edit. The starter is validated by this repository's own test suite on every pull request that
-touches `template/`, so it cannot quietly fall behind the standard it demonstrates.
+and edit. The starter is validated by this repository's own test suite on every pull request, so it
+cannot quietly fall behind the standard it demonstrates.
 
 Then:
 

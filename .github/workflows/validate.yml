@@ -1,13 +1,10 @@
 name: Tooling
 
+# No paths filter. The fixtures under tests/ encode the rules in PROTOCOL_STANDARD.md, so a change
+# to the standard is exactly when they should run — and an allowlist has to be updated every time a
+# directory is added, which has already been missed twice. The suite takes under a minute.
 on:
   pull_request:
-    paths:
-      - 'scripts/**'
-      - 'actions/**'
-      - 'tests/**'
-      - 'template/**'
-      - '.github/workflows/**'
 
 jobs:
   # The composite action is this repository's product, so CI exercises it the way a content
