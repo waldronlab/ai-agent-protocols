@@ -41,17 +41,20 @@ lockstep with [`PROTOCOL_STANDARD.md`](PROTOCOL_STANDARD.md). Pin them to a rele
 **Copy the contents of [`template/`](template/) into a new empty repository.** It is a complete
 content node: the two workflows, a README and CONTRIBUTING that name this standard as the authority
 on format, and a conforming starter protocol at `protocols/example-protocol/protocol.md` to rename
-and edit. The starter is validated by this repository's own test suite on every pull request, so it
-cannot quietly fall behind the standard it demonstrates.
+and edit. The starter is validated by this repository's own test suite on every pull request that
+touches `template/`, so it cannot quietly fall behind the standard it demonstrates.
 
 Then:
 
 1. Replace the placeholders in `README.md` and edit `protocols/example-protocol/` into your first
    real protocol — the directory name must match the frontmatter `name`.
-2. Add a `LICENSE`. The template deliberately ships none, because the choice is yours; the README
-   describes the dual arrangement this project uses (CC-BY-4.0 for protocols, MIT for everything
-   else).
+2. Add a `LICENSE`. The template deliberately ships none, because the choice is yours; its README
+   suggests the arrangement this project uses (CC-BY-4.0 for protocols, MIT for everything else)
+   without assuming it.
 3. Push to `main` and let the index generate.
+4. **Open a pull request adding your repository to [`registry.yaml`](registry.yaml).** Until that
+   entry exists nothing points at your index, so no agent will ever fetch it — a repository with a
+   perfectly valid `PROTOCOLS.yaml` is still invisible.
 
 Both actions take a `protocols-path` input if your protocols live somewhere other than `protocols/`.
 Neither hardcodes a repository name: `protocol_url` values are built from the repository the workflow
@@ -62,9 +65,6 @@ which is the point, since a validator that has fallen behind means silently enfo
 standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v1.0.0`
 and update it by hand — or, since a git tag can itself be retargeted, pin a commit SHA, which is the
 only genuinely immutable reference. Note that `generate-index` runs with `contents: write`.
-
-Finally, open a pull request adding your repository to [`registry.yaml`](registry.yaml) so that
-agents discover it.
 
 ## Development
 
