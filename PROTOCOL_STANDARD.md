@@ -125,8 +125,15 @@ Explanation and code...
 Additional context, caveats, computational/HPC requirements, or troubleshooting tips.
 
 ## History & Reviews
+<!-- Newest versions at the top -->
 
-See below.
+### Version 1.0.0 (2026-08-08)
+
+#### Changes
+- Initial protocol creation.
+
+#### Reviews
+*No reviews yet.*
 ```
 
 ### History & Reviews
