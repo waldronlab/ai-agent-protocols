@@ -1,7 +1,203 @@
 spec_version: 1.0.0
 repository: waldronlab/ai-agent-protocols
-generated_at: '2026-09-10T18:02:21Z'
+generated_at: '2026-09-11T14:18:21Z'
 protocols:
+- name: humann4-augmented-clustering
+  description: Predict ORFs and perform augmented UniRef-compatible protein clustering.
+  version: 1.0.0
+  authors:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+  date: '2026-08-08'
+  status: draft
+  license: CC-BY-4.0
+  type: atomic
+  protocol_doi: ~
+  repository_doi: ~
+  publication_doi: ~
+  citation: 10.1016/j.cell.2019.01.001
+  upstream_repositories:
+  - https://github.com/biobakery/humann
+  - https://github.com/biobakery/metaphlan
+  database_urls:
+  - http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/
+  - ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/
+  protocols_used: []
+  key_packages: []
+  category: metagenomics
+  tags:
+  - humann
+  - chocophlan
+  - database
+  - uniref
+  - clustering
+  - mmseqs2
+  - diamond
+  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-augmented-clustering/protocol.md
+- name: humann4-chocophlan-build
+  description: Construct the HUMAnN 4 ChocoPhlAn nucleotide pangenome database.
+  version: 1.0.0
+  authors:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+  date: '2026-08-08'
+  status: draft
+  license: CC-BY-4.0
+  type: atomic
+  protocol_doi: ~
+  repository_doi: ~
+  publication_doi: ~
+  citation: 10.7554/eLife.65088
+  upstream_repositories:
+  - https://github.com/biobakery/humann
+  - https://github.com/biobakery/metaphlan
+  database_urls:
+  - http://huttenhower.sph.harvard.edu/humann_data/chocophlan/
+  - http://cmprod1.cibio.unitn.it/databases/chocophlan/
+  protocols_used: []
+  key_packages: []
+  category: metagenomics
+  tags:
+  - humann
+  - chocophlan
+  - database
+  - pangenome
+  - bowtie2
+  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-chocophlan-build/protocol.md
+- name: humann4-database-build
+  description: End-to-end composite pipeline for constructing HUMAnN 4 reference databases
+    from MetaPhlAn 4.2 SGBs.
+  version: 1.0.0
+  authors:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+  date: '2026-08-18'
+  status: draft
+  license: CC-BY-4.0
+  type: composite
+  protocol_doi: ~
+  repository_doi: ~
+  publication_doi: ~
+  citation: 10.7554/eLife.65088
+  upstream_repositories:
+  - https://github.com/biobakery/humann
+  - https://github.com/biobakery/metaphlan
+  database_urls:
+  - http://huttenhower.sph.harvard.edu/humann_data/chocophlan/
+  - http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/
+  - http://huttenhower.sph.harvard.edu/humann_data/mapping/
+  protocols_used:
+  - name: humann4-sgb-aggregation
+    repository: waldronlab/ai-agent-protocols
+    version: 1.0.0
+  - name: humann4-augmented-clustering
+    repository: waldronlab/ai-agent-protocols
+    version: 1.0.0
+  - name: humann4-chocophlan-build
+    repository: waldronlab/ai-agent-protocols
+    version: 1.0.0
+  - name: humann4-translated-search-build
+    repository: waldronlab/ai-agent-protocols
+    version: 1.0.0
+  - name: humann4-utility-mapping
+    repository: waldronlab/ai-agent-protocols
+    version: 1.0.0
+  key_packages: []
+  category: metagenomics
+  tags:
+  - humann
+  - chocophlan
+  - database
+  - pipeline
+  - composite
+  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-database-build/protocol.md
+- name: humann4-sgb-aggregation
+  description: Aggregate and subsample isolate genomes and MAGs for MetaPhlAn 4.2
+    SGBs.
+  version: 1.0.0
+  authors:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+  date: '2026-08-08'
+  status: draft
+  license: CC-BY-4.0
+  type: atomic
+  protocol_doi: ~
+  repository_doi: ~
+  publication_doi: ~
+  citation: 10.1016/j.cell.2019.01.001
+  upstream_repositories:
+  - https://github.com/biobakery/metaphlan
+  - https://github.com/biobakery/panphlan
+  database_urls:
+  - http://cmprod1.cibio.unitn.it/databases/MetaPhlAn/
+  - http://cmprod1.cibio.unitn.it/databases/PanPhlAn/
+  protocols_used: []
+  key_packages: []
+  category: metagenomics
+  tags:
+  - humann
+  - chocophlan
+  - database
+  - sgb
+  - metaphlan
+  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-sgb-aggregation/protocol.md
+- name: humann4-translated-search-build
+  description: Compile the HUMAnN 4 translated search database.
+  version: 1.0.0
+  authors:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+  date: '2026-08-08'
+  status: draft
+  license: CC-BY-4.0
+  type: atomic
+  protocol_doi: ~
+  repository_doi: ~
+  publication_doi: ~
+  citation: 10.7554/eLife.65088
+  upstream_repositories: https://github.com/biobakery/humann
+  database_urls: http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/
+  protocols_used: []
+  key_packages: []
+  category: metagenomics
+  tags:
+  - humann
+  - database
+  - translated-search
+  - diamond
+  - uniref
+  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-translated-search-build/protocol.md
+- name: humann4-utility-mapping
+  description: Generate HUMAnN 4 utility mapping databases for functional annotation.
+  version: 1.0.0
+  authors:
+  - name: Levi Waldron
+    orcid: 0000-0003-2725-0694
+  date: '2026-08-08'
+  status: draft
+  license: CC-BY-4.0
+  type: atomic
+  protocol_doi: ~
+  repository_doi: ~
+  publication_doi: ~
+  citation: 10.7554/eLife.65088
+  upstream_repositories:
+  - https://github.com/biobakery/humann
+  - https://github.com/eggnogdb/eggnog-mapper
+  database_urls:
+  - http://huttenhower.sph.harvard.edu/humann_data/mapping/
+  - http://huttenhower.sph.harvard.edu/humann_data/legacy_dbs/
+  protocols_used: []
+  key_packages: []
+  category: metagenomics
+  tags:
+  - humann
+  - database
+  - functional-annotation
+  - eggnog-mapper
+  - uniprot
+  protocol_url: https://raw.githubusercontent.com/waldronlab/ai-agent-protocols/main/protocols/humann4-utility-mapping/protocol.md
 - name: independent-filtering-variance
   description: Filter high-throughput features by overall variance or mean across
     all samples before a separately specified downstream analysis.
