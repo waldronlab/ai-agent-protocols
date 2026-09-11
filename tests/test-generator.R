@@ -53,11 +53,19 @@ if (result$status != 0 || !file.exists(index_file)) {
         paste(urls, collapse = ", "))
 
   # The whole frontmatter is copied through, which is how reviews reach the index without the
-  # generator knowing anything about them.
-  reviewers <- vapply(index$protocols[[1]]$reviews, function(r) r$name, character(1))
-  check("frontmatter fields the generator has no knowledge of are copied through",
-        identical(reviewers, c("Grace Hopper", "Alan Turing")),
-        paste(reviewers, collapse = ", "))
+  # generator knowing anything about them — the mechanism ADR 0005 relies on. Compare the complete
+  # objects: checking only the reviewer names would still pass if orcid, date, protocol_version or
+  # status were dropped, which is the failure that would actually matter.
+  expected_reviews <- list(
+    list(name = "Grace Hopper", orcid = "0000-0001-5109-3700", date = "2026-02-01",
+         protocol_version = "1.0.0", status = "verified-with-benchmark"),
+    list(name = "Alan Turing", date = "2026-01-20",
+         protocol_version = "1.0.0", status = "approved")
+  )
+  actual_reviews <- lapply(index$protocols[[1]]$reviews, function(r) lapply(r, as.character))
+  check("every frontmatter field reaches the index, including ones the generator knows nothing about",
+        identical(actual_reviews, expected_reviews),
+        paste(utils::capture.output(str(actual_reviews)), collapse = " | "))
 }
 
 # An empty index is never the right answer: the action commits the output, so a mistyped path would
@@ -76,9 +84,33 @@ check("generator refuses to write an index when the protocols directory is missi
       result$status != 0 && !file.exists(file.path(empty, "PROTOCOLS.yaml")),
       result$output)
 
-# Better to fail than to publish an index whose URLs point at the wrong repository. The working
-# directory is outside any git checkout, so there is no origin remote to fall back to.
-result <- run_generator(work, env = "GITHUB_REPOSITORY=")
-check("generator stops when the repository cannot be determined",
-      result$status != 0 && grepl("Could not determine which repository", result$output, fixed = TRUE),
+# A protocol whose frontmatter cannot be parsed must not simply be dropped. It exists in the
+# repository but would be missing from the index, so no agent could discover it — and the run would
+# report success and commit that index.
+malformed <- file.path(tempdir(), "generator-malformed")
+unlink(malformed, recursive = TRUE)
+dir.create(file.path(malformed, "protocols", "broken"), recursive = TRUE, showWarnings = FALSE)
+file.copy(file.path(fixtures_dir, "valid", "basic", "protocols", "example-protocol"),
+          file.path(malformed, "protocols"), recursive = TRUE)
+writeLines(c("---", "name: broken", "  bad: [unclosed", "---", "", "# Broken"),
+           file.path(malformed, "protocols", "broken", "protocol.md"))
+result <- run_generator(malformed, env = "GITHUB_REPOSITORY=some-org/some-repo")
+check("generator refuses to write an index that silently omits an unreadable protocol",
+      result$status != 0 && !file.exists(file.path(malformed, "PROTOCOLS.yaml")),
+      result$output)
+
+# Better to fail than to publish an index whose URLs point at the wrong repository. A fresh working
+# directory, so that "no index was written" is actually being asserted rather than inherited from
+# the successful run above; and outside any git checkout, so there is no origin remote to fall back
+# to.
+undetectable <- file.path(tempdir(), "generator-undetectable")
+unlink(undetectable, recursive = TRUE)
+dir.create(file.path(undetectable, "protocols"), recursive = TRUE, showWarnings = FALSE)
+file.copy(file.path(fixtures_dir, "valid", "basic", "protocols", "example-protocol"),
+          file.path(undetectable, "protocols"), recursive = TRUE)
+result <- run_generator(undetectable, env = "GITHUB_REPOSITORY=")
+check("generator stops, writing nothing, when the repository cannot be determined",
+      result$status != 0 &&
+        !file.exists(file.path(undetectable, "PROTOCOLS.yaml")) &&
+        grepl("Could not determine which repository", result$output, fixed = TRUE),
       result$output)

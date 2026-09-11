@@ -28,6 +28,11 @@ url_cases <- list(
   c("github.com/owner/name",                               NA),
   c("",                                                    NA),
 
+  # A scheme alone does not make a remote: file:// URLs have an empty host, and reach the same
+  # invented slug by a different route than a bare path.
+  c("file:///tmp/protocols",                               NA),
+  c("file:///Users/someone/git/protocols",                 NA),
+
   # Wrong shape even as a URL.
   c("https://github.com/owner",                            NA),
   c("https://github.com/owner/name/extra",                 NA)
@@ -50,15 +55,37 @@ restore_env <- function() {
     if (is.na(saved[[name]])) Sys.unsetenv(name) else do.call(Sys.setenv, setNames(list(saved[[name]]), name))
   }
 }
-on.exit(restore_env(), add = TRUE)
 clear_env <- function() {
   Sys.unsetenv(c("GITHUB_REPOSITORY", "GITHUB_REF_NAME", "GITHUB_BASE_REF", "GITHUB_EVENT_NAME"))
 }
 
+# A throwaway checkout with an origin remote, to exercise the fallback path rather than only the
+# parser it calls. Outside GitHub Actions this is the branch that decides every generated URL.
+git_repo <- file.path(tempdir(), "detect-repository-fallback")
+unlink(git_repo, recursive = TRUE)
+dir.create(git_repo, recursive = TRUE, showWarnings = FALSE)
+git_quiet <- function(...) suppressWarnings(system2("git", c("-C", shQuote(git_repo), ...),
+                                                    stdout = FALSE, stderr = FALSE))
+git_quiet("init")
+git_quiet("remote", "add", "origin", "git@github.com:remote-org/remote-repo.git")
+
+in_dir <- function(dir, expr) {
+  old <- setwd(dir)
+  on.exit(setwd(old), add = TRUE)
+  force(expr)
+}
+
 clear_env()
+check("detect_repository() falls back to the origin remote",
+      identical(in_dir(git_repo, detect_repository()), "remote-org/remote-repo"),
+      in_dir(git_repo, detect_repository()))
+
+check("detect_repository() returns NA outside a git checkout",
+      is.na(in_dir(tempdir(), detect_repository())))
+
 Sys.setenv(GITHUB_REPOSITORY = "some-org/some-repo")
 check("detect_repository() prefers GITHUB_REPOSITORY over the git remote",
-      identical(detect_repository(), "some-org/some-repo"))
+      identical(in_dir(git_repo, detect_repository()), "some-org/some-repo"))
 
 clear_env()
 check("detect_ref() defaults to main", identical(detect_ref(), "main"))

@@ -50,21 +50,33 @@ if (is.na(repository_name)) {
 repository_ref <- detect_ref()
 
 protocols_list <- list()
+unreadable <- character(0)
 
 for (file_path in protocol_files) {
   frontmatter <- tryCatch({
     rmarkdown::yaml_front_matter(file_path)
   }, error = function(e) {
-    cat(sprintf("  [ERROR] Failed to parse YAML frontmatter: %s\n", e$message))
+    cat(sprintf("  [ERROR] Failed to parse YAML frontmatter in %s: %s\n", file_path, e$message))
     return(NULL)
   })
-  
-  if (!is.null(frontmatter)) {
-    # Add protocol URL to the metadata
-    frontmatter$protocol_url <- sprintf(
-      "https://raw.githubusercontent.com/%s/%s/%s", repository_name, repository_ref, file_path)
-    protocols_list[[length(protocols_list) + 1]] <- frontmatter
+
+  if (is.null(frontmatter)) {
+    unreadable <- c(unreadable, file_path)
+    next
   }
+
+  # Add protocol URL to the metadata
+  frontmatter$protocol_url <- sprintf(
+    "https://raw.githubusercontent.com/%s/%s/%s", repository_name, repository_ref, file_path)
+  protocols_list[[length(protocols_list) + 1]] <- frontmatter
+}
+
+# Skipping an unreadable protocol would publish an index that silently omits it — the protocol
+# exists in the repository, but no agent can discover it, and the run still reports success.
+if (length(unreadable) > 0) {
+  stop(sprintf("Could not read %d protocol(s): %s. Refusing to write an index that omits them.",
+               length(unreadable), paste(unreadable, collapse = ", ")),
+       call. = FALSE)
 }
 
 index <- list(

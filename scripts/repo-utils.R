@@ -25,6 +25,12 @@ parse_repository_url <- function(url) {
   } else if (grepl("^[a-zA-Z][a-zA-Z0-9+.-]*://", url)) {
     url <- sub("^[a-zA-Z][a-zA-Z0-9+.-]*://", "", url) # scheme
     url <- sub("^[^/]*@", "", url) # userinfo
+    # A scheme alone does not make it remote. "file:///tmp/protocols" has an empty host, and
+    # stripping the leading slash would turn a local path into the invented slug "tmp/protocols"
+    # by a different route than the bare-path case above.
+    if (!grepl("^[^/]+/", url)) {
+      return(NA_character_)
+    }
     url <- sub("^[^/]+/", "", url) # host
   } else {
     return(NA_character_)
