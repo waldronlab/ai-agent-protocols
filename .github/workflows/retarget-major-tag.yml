@@ -18,6 +18,14 @@ on:
 permissions:
   contents: write
 
+# Two releases published close together would otherwise race: both jobs read the tag list before
+# either pushes, so each passes the highest-on-its-line check below and the last push wins on timing.
+# Serializing the whole job — checkout included — means the second run reads the tag list after the
+# first has pushed, and so sees the newer tag and declines.
+concurrency:
+  group: retarget-major-tag
+  cancel-in-progress: false
+
 jobs:
   retarget:
     runs-on: ubuntu-latest
@@ -32,9 +40,27 @@ jobs:
         id: resolve
         env:
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
-          PRERELEASE: ${{ github.event.release.prerelease }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+
+          # On `release: published` the payload carries the flag. A manual dispatch has no payload,
+          # and defaulting a missing flag to "not a pre-release" would let a dispatch move the major
+          # tag onto one: GitHub permits a pre-release to carry a plain vX.Y.Z tag, so the shape
+          # check below would not catch it either. Ask the API rather than assume.
+          if [ "$EVENT" = "release" ]; then
+            PRERELEASE="$RELEASE_PRERELEASE"
+          else
+            PRERELEASE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq .prerelease 2>/dev/null || echo missing)
+            # A tag with no published Release is not something the major tag tracks.
+            if [ "$PRERELEASE" = "missing" ]; then
+              echo "::notice::no published release for $TAG; leaving the major tag where it is"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
 
           # A pre-release is published precisely so that it is not what consumers get by default.
           if [ "${PRERELEASE:-false}" = "true" ]; then
@@ -54,8 +80,8 @@ jobs:
           MAJOR="${TAG%%.*}"
 
           # Publishing an older patch release retroactively must not walk the major tag backwards,
-          # so move it only when this release is the highest on its line. sort -V orders v0.3.1
-          # after v0.3.0 and after v0.10.0 correctly; a string compare does not.
+          # so move it only when this release is the highest on its line. sort -V puts v0.10.0 after
+          # v0.3.1, where a string compare puts it before.
           HIGHEST=$(git tag --list "${MAJOR}.*" \
             | grep -E "^${MAJOR}\.[0-9]+\.[0-9]+$" \
             | sort -V | tail -n 1)
