@@ -1,1 +1,0 @@
-Composite protocol 'example-composite' must not define 'method_citation'; it proposes no method. Use 'protocol_citation' for a publication describing the pipeline.

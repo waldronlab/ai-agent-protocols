@@ -5,6 +5,9 @@
 - **Deciders:** Levi Waldron (User), AI Agent
 - **Amends:** [ADR-0001](0001-protocol-standard.md), [ADR-0003](0003-protocol-provenance-and-resource-metadata-refinements.md), [ADR-0004](0004-atomic-and-composite-protocols.md) — field names only; the decisions those records make are unchanged
 
+
+> **Corrected by [ADR-0010](0010-composites-may-carry-a-method-citation.md) (2026-09-12).** The claim below that a composite has no `method_citation` is wrong — a sequence of methods can itself be published as a method. The rename this ADR records is unaffected.
+
 ## Context and Problem Statement
 
 ADR 0001 established a four-field DOI taxonomy: `protocol_doi` for the artifact, `repository_doi` for the

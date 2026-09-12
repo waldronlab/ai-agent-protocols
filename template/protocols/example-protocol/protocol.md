@@ -14,8 +14,9 @@ type: atomic                      # atomic | composite
 
 # An atomic protocol carries exactly one `method_citation`: the primary literature where the
 # method it implements was originally published. It records the method's origin — not this
-# document's identity, which is `artifact_doi` below. A composite protocol has no
-# `method_citation`; it proposes no method and inherits those of the protocols it composes.
+# document's identity, which is `artifact_doi` below. A composite usually omits this and inherits
+# the citations of the protocols it composes — unless the composition was itself published as a
+# method, in which case name that paper here.
 method_citation: "10.0000/replace-with-a-real-doi"
 
 # A publication that describes or validates THIS protocol — the procedure as written here,
