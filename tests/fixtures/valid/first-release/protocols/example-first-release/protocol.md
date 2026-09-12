@@ -20,6 +20,11 @@ tags: [example, fixture]
 The pre-review case: the section is still required, only its `#### Reviews` body is a placeholder,
 and the optional `reviews:` frontmatter field is omitted entirely.
 
+## Materials
+
+- **Software & Repositories:**
+  - `example-tool` (https://example.org/example-tool) — version 1.0.
+
 ## Steps
 
 ### Step 1: Run the example tool

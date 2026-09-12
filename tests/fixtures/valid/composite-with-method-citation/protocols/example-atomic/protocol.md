@@ -19,6 +19,11 @@ tags: [example, fixture]
 
 The dependency target for `example-composite`.
 
+## Materials
+
+- **Software & Repositories:**
+  - `example-tool` (https://example.org/example-tool) — version 1.0.
+
 ## Steps
 
 ### Step 1: Run the example tool

@@ -46,6 +46,11 @@ their `protocol_citation`.
 This is what keeps the one-method-one-citation rule from forcing unlike procedures into one document.
 Protocols that share a `method_citation` are siblings; the `protocol_citation` says which sibling this is.
 
+A `method_citation` must be a DOI (`10.1000/xyz`) or a PubMed ID (`PMID:12345678`) — something a reader
+or an agent can resolve. Free text naming a paper is not enough, and neither is the placeholder the
+starter protocol in `template/` ships: a new repository's validation stays red until a real citation
+replaces it, because that is the one thing the template cannot supply.
+
 A test for which field a DOI belongs in: **if the protocol's steps were rewritten, would the DOI still be
 right?** A method's origin survives any rewrite — `method_citation`. A publication describing this
 procedure does not, because the procedure would no longer be the one described — `protocol_citation`.
@@ -60,9 +65,16 @@ All fields must use `snake_case`.
 *   `version`: (String) Semantic versioning (e.g., "1.0.0").
 *   `authors`: (Array of Objects) At least one author must be specified.
     *   `name`: (String) Author's name.
-    *   `orcid`: (String, Optional) Author's ORCID.
+    *   `orcid`: (String, Optional) Author's ORCID. Recommended rather than required, but validated
+        when present: a malformed ORCID is a claim about a named person that resolves to nobody.
 *   `date`: (Date: YYYY-MM-DD) Creation or last modification date.
-*   `status`: (String: `draft` | `stable` | `deprecated` | `superseded`) The current status of the protocol.
+*   `status`: (String: `draft` | `stable` | `deprecated` | `superseded`) The protocol's own lifecycle.
+    *   `draft`: still being worked out; expect it to change.
+    *   `stable`: there is reasonable confidence in the protocol and no further changes are immediately
+        planned. It is an assertion by the authors about the protocol's readiness, not a count of reviews
+        — the `reviews:` feed records what others think of it, separately.
+    *   `deprecated`: should not be used. The runner refuses to execute a deprecated protocol.
+    *   `superseded`: replaced by another protocol, which the `## Notes` section should name.
 
 **Optional Fields:**
 *   `type`: (String: `atomic` | `composite`) Protocol architectural type (defaults to `atomic` if `protocols_used` is empty).
@@ -118,7 +130,12 @@ release is unreviewed when no `reviews:` entry carries a `protocol_version` equa
 
 ### Markdown Content Structure
 
-To ensure compatibility with future export tools (like protocols.io integration), the markdown body should follow this structure:
+The markdown body must contain a `## Materials` section and a `## Steps` section with at least one
+`### Step` heading, and `## History & Reviews` must be the last section. A document with metadata but no
+materials and no steps is not a protocol, however complete its frontmatter is, and CI rejects it.
+
+The remaining structure is a recommendation rather than a requirement, and follows it for compatibility
+with future export tools such as protocols.io integration:
 
 ```markdown
 # [Title of Protocol]
