@@ -15,5 +15,7 @@ This directory contains Architecture Decision Records (ADRs) for the `agent-prot
 - [0009. Name Metadata Fields by What They Identify](0009-name-metadata-fields-by-what-they-identify.md) — amends 0001, 0003, 0004
 - [0010. Composites May Carry a `method_citation`](0010-composites-may-carry-a-method-citation.md) — corrects 0009
 - [0011. Pre-release Tags for the Tooling](0011-pre-release-tags-for-the-tooling.md) — settles a question deferred by 0009
+- [0012. Require Materials, Steps, and a Resolvable Citation](0012-require-materials-steps-and-a-resolvable-citation.md)
+- [0013. `stable` Is an Assertion by the Authors](0013-stable-is-an-assertion-by-the-authors.md)
 
 
