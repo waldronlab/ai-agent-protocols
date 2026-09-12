@@ -110,3 +110,6 @@ names the replacement field in its error, so the correction is mechanical.
 Note that the repository's release tags (`v1`, `v1.0.0`) version the *tooling* that consumers reference from
 workflows, which is a separate axis from `spec_version`. Those tags make the same overclaim and should be
 reconsidered alongside the outstanding work to retarget `v1`, not here.
+
+> That reconsideration happened later the same day. See [ADR-0011](0011-pre-release-tags-for-the-tooling.md):
+> the tooling is versioned `v0.x` with a moving `@v0` tag.
