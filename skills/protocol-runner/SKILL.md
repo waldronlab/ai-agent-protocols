@@ -31,7 +31,7 @@ Finds and executes citable, versioned analysis protocols from federated reposito
 
 ### 2. Match Protocol to Request
 
-1. If the user named a specific repository or version — "the `waldronlab/agent-protocols` version", "v1.2.0" — treat those as **hard filters**, applied before any ranking. If nothing matches exactly, say so and stop rather than falling back to a same-named protocol from another repository or a different release; silently substituting either breaks the provenance this skill exists to preserve.
+1. If the user named a specific repository or version — "the `waldronlab/agent-protocols` version", "v0.3.0" — treat those as **hard filters**, applied before any ranking. If nothing matches exactly, say so and stop rather than falling back to a same-named protocol from another repository or a different release; silently substituting either breaks the provenance this skill exists to preserve.
 2. Match the user's stated task to the remaining protocols using `name`, `description`, `category`, and `tags`.
 3. If there are multiple matches, rank them by `trust_tier` (descending), and then by `status` (preferring `stable`).
 

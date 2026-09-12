@@ -60,9 +60,9 @@ Both actions take a `protocols-path` input if your protocols live somewhere othe
 Neither hardcodes a repository name: `protocol_url` values are built from the repository the workflow
 runs in, so nothing in the template needs editing to point at you.
 
-`@v1` is a moving tag, so your repository tracks the standard without a pull request per release —
+`@v0` is a moving tag, so your repository tracks the standard without a pull request per release —
 which is the point, since a validator that has fallen behind means silently enforcing an older
-standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v1.0.0`
+standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v0.3.0`
 and update it by hand — or, since a git tag can itself be retargeted, pin a commit SHA, which is the
 only genuinely immutable reference. Note that `generate-index` runs with `contents: write`.
 

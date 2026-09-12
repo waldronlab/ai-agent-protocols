@@ -14,5 +14,6 @@ This directory contains Architecture Decision Records (ADRs) for the `agent-prot
 - [0008. Flat Federation Instead of Hierarchical Registries](0008-flat-federation-instead-of-hierarchical-registries.md)
 - [0009. Name Metadata Fields by What They Identify](0009-name-metadata-fields-by-what-they-identify.md) — amends 0001, 0003, 0004
 - [0010. Composites May Carry a `method_citation`](0010-composites-may-carry-a-method-citation.md) — corrects 0009
+- [0011. Pre-release Tags for the Tooling](0011-pre-release-tags-for-the-tooling.md) — settles a question deferred by 0009
 
 
