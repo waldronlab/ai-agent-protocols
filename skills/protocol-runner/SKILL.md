@@ -4,7 +4,7 @@ description: Search, retrieve, evaluate trust, and execute citable workflows fro
 version: 2.0.0
 category: protocols
 author: waldronlab
-tags: [workflow, protocol, pipeline, citation, provenance]
+tags: [workflow, protocol, pipeline, method_citation, provenance]
 ---
 
 # protocol-runner
@@ -26,7 +26,7 @@ Finds and executes citable, versioned analysis protocols from federated reposito
 ### 1. Discover Available Protocols
 
 1. Read `registry.yaml` from the `waldronlab/agent-protocol-standard` repository (or whatever repository the user specified, defaulting to `https://raw.githubusercontent.com/waldronlab/agent-protocol-standard/main/registry.yaml`).
-2. For each registered entry in that file, fetch its `PROTOCOLS.yaml` index using its `index_url`. Each protocol entry carries the fields this skill relies on: `name`, `description`, `version`, `date`, `status`, `type` (`atomic` | `composite`), `citation`, `publication_doi`, `protocol_doi`, `repository_doi`, `license`, `protocol_url`, `upstream_repositories`, `database_urls`, `protocols_used`.
+2. For each registered entry in that file, fetch its `PROTOCOLS.yaml` index using its `index_url`. Each protocol entry carries the fields this skill relies on: `name`, `description`, `version`, `date`, `status`, `type` (`atomic` | `composite`), `method_citation`, `protocol_citation`, `artifact_doi`, `collection_doi`, `license`, `protocol_url`, `upstream_repositories`, `database_urls`, `protocols_used`.
 3. Merge all protocol entries from all fetched indices into a single available protocol list. **Carry the parent metadata onto each entry as you merge it**: `trust_tier` comes from the repository's entry in `registry.yaml`, and the repository name from the index's top-level `repository` field. Neither is a property of an individual protocol, and without them the ranking and display below have nothing to work with.
 
 ### 2. Match Protocol to Request
@@ -68,8 +68,8 @@ silent substitution this skill is meant to prevent:
 
 1. For each protocol in the execution chain (dependencies first, then the main protocol):
    - Fetch the markdown content using the `protocol_url` specified in the index.
-   - Parse the singular `citation` YAML frontmatter field to extract the DOI or PMID (Level 2 Citation).
-   - When executing a composite protocol (`type: composite`), aggregate the singular `citation` DOI/PMID from each constituent atomic protocol listed in `protocols_used`.
+   - Parse the singular `method_citation` YAML frontmatter field to extract the DOI or PMID (Level 2 Citation).
+   - When executing a composite protocol (`type: composite`), aggregate the singular `method_citation` DOI/PMID from each constituent atomic protocol listed in `protocols_used`.
 2. **Important**: Before executing any code, emit the full Method Provenance block to the user using the following format, adapted for each protocol in the chain:
 
    ```markdown
@@ -78,19 +78,19 @@ silent substitution this skill is meant to prevent:
    ### Protocol Citation (Level 1)
    Following: [Author] "[Protocol Title/Name]"
    Repository: [Repository Name], protocol: [Protocol Name] v[Version] ([date])
-   Repository DOI: [repository_doi if present]
-   Protocol DOI: [protocol_doi if present]
-   Publication DOI: [publication_doi if present]
+   Repository DOI: [collection_doi if present]
+   Protocol DOI: [artifact_doi if present]
+   Publication DOI: [protocol_citation if present]
    Trust tier: [trust_tier]
    License: [license]
 
    ### Primary Literature to Cite (Level 2)
    This protocol implements methods from:
-   - [Primary method citation (DOI/PMID) from `citation` field]
+   - [Primary method method_citation (DOI/PMID) from `method_citation` field]
    - [For composite protocols: aggregated DOIs/PMIDs from all constituent atomic protocols]
    ```
 
-   *Note: If `protocol_doi` is present, cite it. If only `repository_doi` is present, ensure it is clearly displayed alongside the specific protocol name and version so the user knows which part of the repository was used.*
+   *Note: If `artifact_doi` is present, cite it. If only `collection_doi` is present, ensure it is clearly displayed alongside the specific protocol name and version so the user knows which part of the repository was used.*
 
 ### 6. Execute Protocol
 
@@ -111,9 +111,9 @@ silent substitution this skill is meant to prevent:
 2. **Inline Method & Tool Attribution (Level 2):** Embed underlying methodology and software citations directly into the narrative prose at the relevant steps using their DOIs/PMIDs (e.g., *"...using MetaPhlAn 4.2 (DOI: 10.1038/s41587-023-01688-w)"*).
 3. **Departures & Parameters:** Seamlessly incorporate any runtime parameter adaptations or deviations recorded in Step 7 into the text.
 4. **AI Agent Protocols Attribution Subsection (Level 1):** Include a dedicated separate paragraph/subsection naming and citing the executed protocol artifact, repository, version, and protocol/repository DOI:
-   > *"Computational analysis was automated using the AI Agent Protocol `[Protocol Name]` (v`[Version]`, DOI: `[protocol_doi or repository_doi]`) from `[repository]`, executed via the `protocol-runner` agent skill (`waldronlab/agent-protocol-standard`)."*
+   > *"Computational analysis was automated using the AI Agent Protocol `[Protocol Name]` (v`[Version]`, DOI: `[artifact_doi or collection_doi]`) from `[repository]`, executed via the `protocol-runner` agent skill (`waldronlab/agent-protocol-standard`)."*
 
-   Both DOI fields are optional in the standard and are frequently absent. **Omit the DOI clause entirely when neither `protocol_doi` nor `repository_doi` is present** — a sentence reading "DOI:" with nothing after it is worse than no DOI at all — and name the repository and version instead, which always exist.
+   Both DOI fields are optional in the standard and are frequently absent. **Omit the DOI clause entirely when neither `artifact_doi` nor `collection_doi` is present** — a sentence reading "DOI:" with nothing after it is worse than no DOI at all — and name the repository and version instead, which always exist.
 5. **No Style-Specific Bibliography Formatting:** Do not generate formatted bibliographies in arbitrary styles (APA, MLA, BibTeX, etc.); propagate exact DOIs and PMIDs so users can seamlessly import them into their reference manager of choice.
 
 ## Output Format

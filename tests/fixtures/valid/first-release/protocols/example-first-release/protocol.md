@@ -8,7 +8,7 @@ date: 2026-01-15
 status: draft
 license: CC-BY-4.0
 type: atomic
-citation: "10.1000/example"
+method_citation: "10.1000/example"
 protocols_used: []
 key_packages: []
 category: example

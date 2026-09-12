@@ -4,6 +4,9 @@
 - **Date:** 2026-08-18
 - **Deciders:** Levi Waldron (User), AI Agent
 
+> **Amended by [ADR-0009](0009-name-metadata-fields-by-what-they-identify.md) (2026-09-12).** The field names used below were renamed: `citation` → `method_citation`, `publication_doi` → `protocol_citation`, `protocol_doi` → `artifact_doi`, `repository_doi` → `collection_doi`. The decisions recorded here otherwise stand; the names are preserved as written for the historical record.
+
+
 ## Context and Problem Statement
 
 Scientific workflows range from modular, single-purpose bioinformatic tasks (e.g., calling Prodigal on a FASTA file) to complex multi-step end-to-end database builds and analysis pipelines. 

@@ -4,6 +4,9 @@
 - **Date:** 2026-08-08
 - **Deciders:** Levi Waldron (User), AI Agent
 
+> **Amended by [ADR-0009](0009-name-metadata-fields-by-what-they-identify.md) (2026-09-12).** The field names used below were renamed: `citation` → `method_citation`, `publication_doi` → `protocol_citation`, `protocol_doi` → `artifact_doi`, `repository_doi` → `collection_doi`. The decisions recorded here otherwise stand; the names are preserved as written for the historical record.
+
+
 ## Context and Problem Statement
 
 To enable AI agents to execute reproducible, citable workflows, we need a standard format for protocols that captures domain-specific instructions alongside rich provenance, citation data, and dependency graphs. This format must be human-readable, machine-parseable, and capable of supporting complex execution dependencies without centralizing the content in a single repository.

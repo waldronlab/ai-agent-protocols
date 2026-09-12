@@ -12,14 +12,14 @@ status: draft                     # draft | stable | deprecated | superseded
 license: CC-BY-4.0
 type: atomic                      # atomic | composite
 
-# An atomic protocol carries exactly one `citation`: the primary literature where the
+# An atomic protocol carries exactly one `method_citation`: the primary literature where the
 # method it implements was published. This is the field that makes the protocol citable.
-citation: "10.0000/replace-with-a-real-doi"
+method_citation: "10.0000/replace-with-a-real-doi"
 
 # DOIs for the protocol artifact and its host collection, if they exist. Delete if not.
-protocol_doi: ~
-repository_doi: ~
-publication_doi: ~
+artifact_doi: ~
+collection_doi: ~
+protocol_citation: ~
 
 # Where an agent can find the tools and reference data this protocol needs.
 upstream_repositories: []

@@ -417,15 +417,31 @@ validate_protocol <- function(file_path) {
     if (length(frontmatter$protocols_used) > 0) "composite" else "atomic"
   }
   
-  # Check citation field
+  # Check method_citation field
   if (!is.null(frontmatter$citations)) {
-    cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'citation' (singular string).\n", frontmatter$name))
+    cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'method_citation' (singular string).\n", frontmatter$name))
     return(FALSE)
   }
+
+  # Fields renamed in spec 2.0.0 so that each name says what it identifies.
+  # Rejected rather than accepted-with-warning: no protocol predates the rename.
+  renamed_fields <- list(
+    citation        = "method_citation",
+    publication_doi = "protocol_citation",
+    protocol_doi    = "artifact_doi",
+    repository_doi  = "collection_doi"
+  )
+  for (old_name in names(renamed_fields)) {
+    if (!is.null(frontmatter[[old_name]])) {
+      cat(sprintf("  [ERROR] Field '%s' was renamed to '%s' in spec 2.0.0 (see PROTOCOL_STANDARD.md) in '%s'\n",
+                  old_name, renamed_fields[[old_name]], frontmatter$name))
+      return(FALSE)
+    }
+  }
   
-  if (!is.null(frontmatter$citation)) {
-    if (!is.character(frontmatter$citation) || length(frontmatter$citation) != 1) {
-      cat(sprintf("  [ERROR] 'citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
+  if (!is.null(frontmatter$method_citation)) {
+    if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
+      cat(sprintf("  [ERROR] 'method_citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
       return(FALSE)
     }
   }
