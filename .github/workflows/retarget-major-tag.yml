@@ -1,0 +1,115 @@
+name: Retarget major tag
+
+# The moving tag (@v0) is what consuming repositories reference, so it has to point at the newest
+# release or they silently run stale tooling. It was moved by hand four times and drifted once —
+# one merge behind main, which was concealing a real validation failure in agent-protocols until
+# the tag caught up. That is the failure this workflow exists to prevent.
+on:
+  release:
+    types: [published]
+  # Manual recovery: if a release was published while this workflow was broken, or the tag was
+  # moved by hand and needs putting back, dispatch it against the release tag to reconcile.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to retarget the major tag onto (e.g. v0.3.1)'
+        required: true
+
+permissions:
+  contents: write
+
+# Two releases published close together would otherwise race: both jobs read the tag list before
+# either pushes, so each passes the highest-on-its-line check below and the last push wins on timing.
+# Serializing the whole job — checkout included — means the second run reads the tag list after the
+# first has pushed, and so sees the newer tag and declines.
+concurrency:
+  group: retarget-major-tag
+  cancel-in-progress: false
+
+jobs:
+  retarget:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 for the tags — the highest-version check below reads them, and a shallow
+      # clone has none.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve the release tag and its major tag
+        id: resolve
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # On `release: published` the payload carries the flag. A manual dispatch has no payload,
+          # and defaulting a missing flag to "not a pre-release" would let a dispatch move the major
+          # tag onto one: GitHub permits a pre-release to carry a plain vX.Y.Z tag, so the shape
+          # check below would not catch it either. Ask the API rather than assume.
+          if [ "$EVENT" = "release" ]; then
+            PRERELEASE="$RELEASE_PRERELEASE"
+          else
+            PRERELEASE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq .prerelease 2>/dev/null || echo missing)
+            # A tag with no published Release is not something the major tag tracks.
+            if [ "$PRERELEASE" = "missing" ]; then
+              echo "::notice::no published release for $TAG; leaving the major tag where it is"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          # A pre-release is published precisely so that it is not what consumers get by default.
+          if [ "${PRERELEASE:-false}" = "true" ]; then
+            echo "::notice::$TAG is a pre-release; leaving the major tag where it is"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Only vX.Y.Z. A tag with a suffix (v0.4.0-rc1) or any other shape is not a release line
+          # the major tag tracks, and guessing at one would move it somewhere unintended.
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::notice::$TAG is not a vX.Y.Z release tag; leaving the major tag where it is"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          MAJOR="${TAG%%.*}"
+
+          # Publishing an older patch release retroactively must not walk the major tag backwards,
+          # so move it only when this release is the highest on its line. sort -V puts v0.10.0 after
+          # v0.3.1, where a string compare puts it before.
+          HIGHEST=$(git tag --list "${MAJOR}.*" \
+            | grep -E "^${MAJOR}\.[0-9]+\.[0-9]+$" \
+            | sort -V | tail -n 1)
+          if [ "$HIGHEST" != "$TAG" ]; then
+            echo "::notice::$TAG is not the highest tag on the ${MAJOR} line ($HIGHEST is); leaving ${MAJOR} where it is"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+
+      - name: Move the major tag
+        if: steps.resolve.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.resolve.outputs.tag }}
+          MAJOR: ${{ steps.resolve.outputs.major }}
+        run: |
+          set -euo pipefail
+
+          # Dereference: an annotated release tag resolves to a tag object, and pointing the major
+          # tag at that rather than at the commit gives consumers a tag pointing at a tag.
+          SHA=$(git rev-list -n 1 "$TAG")
+
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag -f -a "$MAJOR" -m "$MAJOR tracks $TAG" "$SHA"
+          git push -f origin "refs/tags/$MAJOR"
+
+          echo "::notice::$MAJOR now points at $TAG ($SHA)"

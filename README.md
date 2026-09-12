@@ -62,7 +62,7 @@ runs in, so nothing in the template needs editing to point at you.
 
 `@v0` is a moving tag, so your repository tracks the standard without a pull request per release —
 which is the point, since a validator that has fallen behind means silently enforcing an older
-standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v0.3.0`
+standard than you claim to follow. To hold a fixed version instead, pin the release tag `@v0.3.1`
 and update it by hand — or, since a git tag can itself be retargeted, pin a commit SHA, which is the
 only genuinely immutable reference. Note that `generate-index` runs with `contents: write`.
 
@@ -83,6 +83,17 @@ only genuinely immutable reference. Note that `generate-index` runs with `conten
         or empty index would be published without anyone looking at it.
 *   `Rscript scripts/validate-protocol.R <dir>` runs the validator against a protocols directory
     directly — point it at a checkout of a content repository to reproduce a CI failure locally.
+
+### Releasing
+
+Tag `vX.Y.Z`, then publish a GitHub Release for that tag. `retarget-major-tag.yml` moves the moving
+tag (`v0`) onto it, so nothing needs moving by hand — which is what the first four releases required,
+and one of them drifted a merge behind `main` before anyone noticed.
+
+The workflow declines to move the tag, with a notice rather than a failure, for a pre-release, for a
+tag that is not `vX.Y.Z`, and for a release that is not the highest on its line — so republishing an
+old patch release does not walk `v0` backwards. If a release is published while the workflow is
+broken, dispatch it manually against the release tag to reconcile.
 
 ## License
 
