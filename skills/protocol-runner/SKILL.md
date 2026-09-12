@@ -68,8 +68,8 @@ silent substitution this skill is meant to prevent:
 
 1. For each protocol in the execution chain (dependencies first, then the main protocol):
    - Fetch the markdown content using the `protocol_url` specified in the index.
-   - Parse the singular `method_citation` YAML frontmatter field to extract the DOI or PMID (Level 2 Citation).
-   - When executing a composite protocol (`type: composite`), aggregate the singular `method_citation` DOI/PMID from each constituent atomic protocol listed in `protocols_used`.
+   - For an atomic protocol, parse the singular `method_citation` YAML frontmatter field to extract the DOI or PMID (Level 2 Citation).
+   - A composite protocol (`type: composite`) has no `method_citation` of its own — it proposes no method. Do not look for one. Aggregate the `method_citation` of each constituent atomic protocol listed in `protocols_used` instead, and read `protocol_citation` for any publication describing the pipeline as a whole.
 2. **Important**: Before executing any code, emit the full Method Provenance block to the user using the following format, adapted for each protocol in the chain:
 
    ```markdown
@@ -86,8 +86,8 @@ silent substitution this skill is meant to prevent:
 
    ### Primary Literature to Cite (Level 2)
    This protocol implements methods from:
-   - [Primary method method_citation (DOI/PMID) from `method_citation` field]
-   - [For composite protocols: aggregated DOIs/PMIDs from all constituent atomic protocols]
+   - [Atomic protocols: the primary method citation (DOI/PMID) from the `method_citation` field]
+   - [Composite protocols: the aggregated `method_citation` values of all constituent atomic protocols]
    ```
 
    *Note: If `artifact_doi` is present, cite it. If only `collection_doi` is present, ensure it is clearly displayed alongside the specific protocol name and version so the user knows which part of the repository was used.*

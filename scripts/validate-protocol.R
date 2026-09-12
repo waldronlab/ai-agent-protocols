@@ -432,14 +432,20 @@ validate_protocol <- function(file_path) {
     repository_doi  = "collection_doi"
   )
   for (old_name in names(renamed_fields)) {
-    if (!is.null(frontmatter[[old_name]])) {
+    # Presence, not value: a YAML null placeholder such as `protocol_doi: ~` parses to NULL, and the
+    # pre-rename template used exactly that spelling, so a value check would let old names through.
+    if (old_name %in% names(frontmatter)) {
       cat(sprintf("  [ERROR] Field '%s' was renamed to '%s' (see PROTOCOL_STANDARD.md) in '%s'\n",
                   old_name, renamed_fields[[old_name]], frontmatter$name))
       return(FALSE)
     }
   }
   
-  if (!is.null(frontmatter$method_citation)) {
+  if ("method_citation" %in% names(frontmatter)) {
+    if (protocol_type == "composite") {
+      cat(sprintf("  [ERROR] Composite protocol '%s' must not define 'method_citation'; it proposes no method. Use 'protocol_citation' for a publication describing the pipeline.\n", frontmatter$name))
+      return(FALSE)
+    }
     if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
       cat(sprintf("  [ERROR] 'method_citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
       return(FALSE)

@@ -67,7 +67,7 @@ All fields must use `snake_case`.
 **Optional Fields:**
 *   `type`: (String: `atomic` | `composite`) Protocol architectural type (defaults to `atomic` if `protocols_used` is empty).
 *   `license`: (String) License identifier (e.g., "CC-BY-4.0").
-*   `method_citation`: (String) DOI or PMID for the primary literature that **proposed the method** this protocol performs. Describes the method in general, independent of how this protocol applies it.
+*   `method_citation`: (String) DOI or PMID for the primary literature that **proposed the method** this protocol performs. Describes the method in general, independent of how this protocol applies it. Required for an atomic protocol that claims a method; must be absent on a composite, which proposes none.
 *   `protocol_citation`: (String) DOI for a peer-reviewed publication that **describes or validates this protocol specifically** — the procedure as written here, including its parameterization.
 *   `artifact_doi`: (String) DOI identifying **this document** as a citable artifact (e.g., from protocols.io).
 *   `collection_doi`: (String) DOI identifying the **repository or collection** housing this protocol (e.g., a Zenodo record).
