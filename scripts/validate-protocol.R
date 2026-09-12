@@ -413,10 +413,6 @@ validate_protocol <- function(file_path) {
     }
   }
   
-  protocol_type <- if (!is.null(frontmatter$type)) frontmatter$type else {
-    if (length(frontmatter$protocols_used) > 0) "composite" else "atomic"
-  }
-  
   # Check method_citation field
   if (!is.null(frontmatter$citations)) {
     cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'method_citation' (singular string).\n", frontmatter$name))

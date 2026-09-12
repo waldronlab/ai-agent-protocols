@@ -88,6 +88,7 @@ silent substitution this skill is meant to prevent:
    This protocol implements methods from:
    - [Atomic protocols: the primary method citation (DOI/PMID) from the `method_citation` field]
    - [Composite protocols: the aggregated `method_citation` values of all constituent atomic protocols]
+   - [Composite protocols that carry their own `method_citation`: that DOI/PMID as well, labelled as the method the composition itself proposes]
    ```
 
    *Note: If `artifact_doi` is present, cite it. If only `collection_doi` is present, ensure it is clearly displayed alongside the specific protocol name and version so the user knows which part of the repository was used.*
