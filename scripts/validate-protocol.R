@@ -441,11 +441,9 @@ validate_protocol <- function(file_path) {
     }
   }
   
+  # A composite may carry a method_citation: a sequence of methods can itself be published as a
+  # method. Whether it should is a judgement about the literature, not something to validate.
   if ("method_citation" %in% names(frontmatter)) {
-    if (protocol_type == "composite") {
-      cat(sprintf("  [ERROR] Composite protocol '%s' must not define 'method_citation'; it proposes no method. Use 'protocol_citation' for a publication describing the pipeline.\n", frontmatter$name))
-      return(FALSE)
-    }
     if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
       cat(sprintf("  [ERROR] 'method_citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
       return(FALSE)

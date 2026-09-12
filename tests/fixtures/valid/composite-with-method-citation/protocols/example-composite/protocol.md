@@ -8,7 +8,8 @@ date: 2026-01-15
 status: draft
 license: CC-BY-4.0
 type: composite
-method_citation: "10.1000/example"
+# A sequence of methods can itself be published as a method; this is permitted.
+method_citation: "10.1000/example-pipeline"
 protocols_used:
   - name: example-atomic
     repository: example-org/example-protocols
