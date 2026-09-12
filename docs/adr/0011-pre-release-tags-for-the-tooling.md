@@ -31,7 +31,8 @@ The tooling is versioned `v0.x`, and the moving tag is `@v0`.
 | `v1.2.0` | `v0.3.0` | composite `method_citation` correction |
 | `v1` | `v0` | moving, currently `v0.3.0` |
 
-Release notes are carried across; the `v1.*` tags and their Releases are deleted. Both axes now agree
+Release notes are carried across. The `v1.*` tags and their Releases are deleted once the one consumer is
+on `@v0`, so that nothing is left resolving a tag mid-migration. Both axes now agree
 that this is pre-1.0 software: `spec_version: 0.1.0` for the format, `v0.x` for the tooling. They remain
 separate numbers, because they change for different reasons — a release that only fixes a validator bug
 moves the tooling and not the format.
@@ -55,8 +56,9 @@ condition ADR 0009 set for `spec_version` reaching `1.0.0`. The two need not arr
 
 ## Consequences
 
-Consumers must reference `@v0`. The one that exists, `waldronlab/agent-protocols`, is updated in the same
-change; the template shipped to future consumers is updated too, so a new repository starts on `@v0`.
+Consumers must reference `@v0`. The one that exists, `waldronlab/agent-protocols`, is updated in a companion
+pull request, and the `v1.*` tags survive until that lands. The template shipped to future consumers is
+updated here, so a new repository starts on `@v0`.
 
 Anything holding `@v1` breaks rather than silently receiving a stale validator. Given that the tag was
 17 commits behind `main` until today, and that the staleness had been hiding a real validation failure in
