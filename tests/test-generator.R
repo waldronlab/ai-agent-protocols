@@ -43,7 +43,7 @@ if (result$status != 0 || !file.exists(index_file)) {
         sprintf("got %s", index$repository))
 
   check("generated index carries the spec version",
-        identical(index$spec_version, "2.0.0"))
+        identical(index$spec_version, "0.1.0"))
 
   urls <- vapply(index$protocols,
                  function(p) if (is.null(p$protocol_url)) NA_character_ else p$protocol_url,

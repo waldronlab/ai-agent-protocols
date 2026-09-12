@@ -423,8 +423,8 @@ validate_protocol <- function(file_path) {
     return(FALSE)
   }
 
-  # Fields renamed in spec 2.0.0 so that each name says what it identifies.
-  # Rejected rather than accepted-with-warning: no protocol predates the rename.
+  # Fields renamed so that each name says what it identifies (ADR 0009).
+  # Rejected rather than accepted-with-warning: the spec is pre-1.0 and no protocol predates the rename.
   renamed_fields <- list(
     citation        = "method_citation",
     publication_doi = "protocol_citation",
@@ -433,7 +433,7 @@ validate_protocol <- function(file_path) {
   )
   for (old_name in names(renamed_fields)) {
     if (!is.null(frontmatter[[old_name]])) {
-      cat(sprintf("  [ERROR] Field '%s' was renamed to '%s' in spec 2.0.0 (see PROTOCOL_STANDARD.md) in '%s'\n",
+      cat(sprintf("  [ERROR] Field '%s' was renamed to '%s' (see PROTOCOL_STANDARD.md) in '%s'\n",
                   old_name, renamed_fields[[old_name]], frontmatter$name))
       return(FALSE)
     }

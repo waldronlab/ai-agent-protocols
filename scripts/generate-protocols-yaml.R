@@ -80,7 +80,7 @@ if (length(unreadable) > 0) {
 }
 
 index <- list(
-  spec_version = "2.0.0",
+  spec_version = "0.1.0",
   repository = repository_name,
   generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
   protocols = protocols_list

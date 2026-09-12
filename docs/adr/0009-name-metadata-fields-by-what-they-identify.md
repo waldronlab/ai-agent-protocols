@@ -51,9 +51,27 @@ This is what keeps the one-method-one-citation rule from forcing unlike procedur
 their citations. A paper describing the pipeline as a whole is a `protocol_citation`. This removes the
 "`citation` or `publication_doi`" ambiguity by leaving only one legal field.
 
-The rename is breaking, so `spec_version` moves to `2.0.0`. Old names are **rejected** by the validator with
-a message naming the replacement, rather than accepted with a deprecation warning: no protocol in existence
-predates the rename, so there is nothing to migrate and no reason to carry two spellings.
+### Versioning: the specification is pre-1.0
+
+`spec_version` was `1.0.0`, which claimed a stability commitment the standard has not made and cannot yet
+honour. Nothing outside these two repositories consumes the format; the field names, as this ADR
+demonstrates, are still being worked out.
+
+`spec_version` therefore becomes `0.1.0`. SemVer reserves `0.y.z` for initial development, where anything may
+change at any time and the format is explicitly not stable. That is an accurate description of where the
+standard is, and it removes the need to treat every correction as a migration event with deprecation windows
+and compatibility shims.
+
+`1.0.0` becomes a deliberate act rather than a starting point: the moment the standard takes on an obligation
+to outside consumers. It should be reached when there are consumers to owe it to.
+
+The field is kept rather than dropped. A federation index is parsed by tools that need some way to know what
+they are reading, and `0.1.0` communicates instability far more usefully than an absent field, which reads as
+unknown rather than unstable.
+
+Old names are **rejected** by the validator with a message naming the replacement, rather than accepted with a
+deprecation warning: no protocol predates the rename, so there is nothing to migrate and no reason to carry
+two spellings.
 
 ## Alternatives Considered
 
@@ -65,6 +83,10 @@ predates the rename, so there is nothing to migrate and no reason to carry two s
 - **Keep the names, fix the documentation.** Rejected because field names are read far more often than
   specifications are, and because documentation cannot resolve the composite ambiguity — only removing one
   of the two legal fields can.
+- **A pre-release version such as `2.0.0-alpha`.** Rejected: valid SemVer, but it asserts a target major
+  version and keeps the breaking-change framing, when the point is that no compatibility promise exists yet.
+- **Drop `spec_version` entirely.** Rejected: a consumer needs a way to detect what it is parsing, and an
+  absent field reads as unknown rather than as unstable.
 - **Defer until after Phase 2.** Rejected on cost. The rename currently touches 14 files and 7 protocols,
   all in-house, with no external consumers. Thirty-one protocol issues are now open; every protocol written
   against the old names becomes migration work. The cost will never be lower than it is today.
@@ -75,8 +97,13 @@ Contributors can tell which field a DOI belongs in by reading the field name. Th
 distinction is visible without consulting the specification. The composite provenance ambiguity is gone.
 Sibling protocols sharing a method now have a principled way to express the relationship.
 
-`spec_version` 2.0.0 is a breaking change to a released specification. The mitigation is that nothing
-external consumes it yet — which is precisely the argument for doing it now rather than later.
+Dropping to `0.1.0` costs nothing today and buys room to keep correcting the format while it is still being
+designed. The risk it introduces is the obvious one: `0.y.z` is a licence that can be over-used. Reaching
+`1.0.0` should be a decision taken on purpose, not something that happens when someone gets tired of the zero.
 
-Any agent or tool with the 1.0.0 field names memorized will produce protocols that fail validation. The
-validator names the replacement field in its error, so the correction is mechanical.
+Any agent or tool carrying the old field names will produce protocols that fail validation. The validator
+names the replacement field in its error, so the correction is mechanical.
+
+Note that the repository's release tags (`v1`, `v1.0.0`) version the *tooling* that consumers reference from
+workflows, which is a separate axis from `spec_version`. Those tags make the same overclaim and should be
+reconsidered alongside the outstanding work to retarget `v1`, not here.
