@@ -418,8 +418,12 @@ validate_protocol <- function(file_path) {
                                 dir_name, frontmatter$name))
   }
 
-  if (is.character(frontmatter$name) && length(frontmatter$name) == 1 &&
-      !grepl(kebab_case_pattern, frontmatter$name)) {
+  # A guard that only *skips* on the wrong type lets the wrong type through: an unquoted `name: 123`
+  # parses to a number, matches a '123/' directory, and never reaches the pattern below.
+  if (!is.character(frontmatter$name) || length(frontmatter$name) != 1) {
+    errors <- c(errors, sprintf("'name' must be a single string, found: %s of length %d",
+                                class(frontmatter$name)[1], length(frontmatter$name)))
+  } else if (!grepl(kebab_case_pattern, frontmatter$name)) {
     errors <- c(errors, sprintf(
       "'name' must be kebab-case: lowercase letters and digits separated by single hyphens. Found '%s'",
       frontmatter$name))
@@ -436,9 +440,16 @@ validate_protocol <- function(file_path) {
       # An author ORCID is recommended, not required, so its absence is fine. A malformed one is
       # not: it is a claim about a specific named person that resolves to nobody. Reviewer ORCIDs
       # were already checked this way; this is the same field in the other place it appears.
-      if (!is.null(author$orcid) && !grepl(orcid_pattern, author$orcid)) {
-        errors <- c(errors, sprintf("Author '%s' has a malformed ORCID: '%s'",
-                                    if (is.null(author$name)) "?" else author$name, author$orcid))
+      author_label <- if (is.null(author$name)) "?" else author$name
+      if (!is.null(author$orcid)) {
+        # Type and length first: `&&` reads only the first element, so a list of ORCIDs would be
+        # judged on its first entry and a malformed second one never reported.
+        if (!is.character(author$orcid) || length(author$orcid) != 1) {
+          errors <- c(errors, sprintf("Author '%s' must have a single 'orcid' string", author_label))
+        } else if (!grepl(orcid_pattern, author$orcid)) {
+          errors <- c(errors, sprintf("Author '%s' has a malformed ORCID: '%s'",
+                                      author_label, author$orcid))
+        }
       }
     }
   }
@@ -475,7 +486,9 @@ validate_protocol <- function(file_path) {
   }
 
   # Check method_citation field
-  if (!is.null(frontmatter$citations)) {
+  # Presence, not value: `citations: ~` parses to NULL, so a value check would let the deprecated
+  # key through. Same reasoning as the renamed-field loop below.
+  if ("citations" %in% names(frontmatter)) {
     errors <- c(errors, "Deprecated 'citations' field found. Use 'method_citation' (singular string)")
   }
 
@@ -519,11 +532,19 @@ validate_protocol <- function(file_path) {
   if (length(grep("^##[[:space:]]+Materials[[:space:]]*$", body)) == 0) {
     errors <- c(errors, "Missing required '## Materials' section (see PROTOCOL_STANDARD.md)")
   }
-  step_section <- grep("^##[[:space:]]+Steps[[:space:]]*$", body)
-  if (length(step_section) == 0) {
+  step_heading <- grep("^##[[:space:]]+Steps[[:space:]]*$", body)
+  if (length(step_heading) == 0) {
     errors <- c(errors, "Missing required '## Steps' section (see PROTOCOL_STANDARD.md)")
-  } else if (length(grep("^###[[:space:]]+Step", body)) == 0) {
-    errors <- c(errors, "'## Steps' contains no '### Step' heading; a protocol must have at least one step")
+  } else {
+    # Only this section's own headings count. Searching the whole document would let a '### Step'
+    # under '## Notes' satisfy an empty '## Steps'. The trailing boundary keeps '### Steps' — a
+    # plausible typo for the section heading itself — from passing as a step.
+    after <- body[(step_heading[1] + 1):length(body)]
+    next_section <- grep("^##[[:space:]]", after)
+    section <- if (length(next_section) > 0) after[seq_len(next_section[1] - 1)] else after
+    if (length(grep("^###[[:space:]]+Step([[:space:]]|:)", section)) == 0) {
+      errors <- c(errors, "'## Steps' contains no '### Step' heading; a protocol must have at least one step")
+    }
   }
 
   # Check protocols_used structure for composite/dependent protocols

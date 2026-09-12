@@ -60,8 +60,8 @@ single-condition checks is what makes one-fixture-per-rule reviewable.
 
 ## Consequences
 
-Eleven rules that were stated and unenforced are now enforced, with one fixture each. All seven existing
-protocols pass unchanged — unlike the field rename, this needs no content migration.
+Eleven rules that were stated and unenforced are now enforced, each with at least one fixture. All seven
+existing protocols pass unchanged — unlike the field rename, this needs no content migration.
 
 Six fixtures gained a `## Materials` section they had been written without. The template's test inverts:
 it now asserts the starter protocol fails with exactly the placeholder-citation error and no other, which

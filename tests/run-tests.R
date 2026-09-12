@@ -116,6 +116,12 @@ if (!dir.exists(template_protocols)) {
   if (result$status == 0) {
     cat("  [FAIL] template/protocols: expected the placeholder citation to be rejected, but it passed\n")
     failures <- c(failures, "template")
+  } else if (!grepl(template_expected, result$output, fixed = TRUE)) {
+    # Absence of other errors is not evidence of the right one: a crash before any [ERROR] line
+    # also exits nonzero and leaves 'other_errors' empty.
+    cat(sprintf("  [FAIL] template/protocols: failed, but not on its placeholder citation\n%s\n",
+                result$output))
+    failures <- c(failures, "template")
   } else if (length(other_errors) > 0) {
     cat(sprintf("  [FAIL] template/protocols: the starter protocol does not conform, beyond its placeholder citation\n%s\n",
                 paste(other_errors, collapse = "\n")))
