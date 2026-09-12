@@ -23,12 +23,32 @@ Protocols follow a modular two-tier design:
 
 1. **Atomic Protocols**:
    * Implement a single, focused methodological operation.
-   * **Strictly 1 citation:** The `citation` field must contain a single DOI/PMID corresponding to the primary literature where the method was originally published.
+   * **Strictly 1 `method_citation`:** A single DOI/PMID naming the primary literature where the method was originally published — the paper that *proposed* it, not one that applied it.
    * Do not compose other protocols (`protocols_used: []`).
 2. **Composite Protocols**:
    * Implement multi-step workflows or end-to-end pipelines by composing atomic protocols.
    * **Composition:** List all constituent atomic protocols in `protocols_used`.
-   * **Provenance:** Automatically inherit and aggregate the citations of their constituent atomic protocols upon execution. An optional overarching pipeline publication may be listed in `citation` or `publication_doi`.
+   * **Provenance:** Automatically inherit and aggregate the `method_citation` of every constituent atomic protocol upon execution. A publication describing the pipeline as a whole belongs in `protocol_citation`; a composite has no `method_citation` of its own, because it proposes no method.
+
+### `method_citation` and `protocol_citation`
+
+The two citation fields answer different questions, and a protocol may carry both.
+
+`method_citation` names the origin of the method in general. `protocol_citation` names a publication of
+this precise usage — the parameter values, thresholds, and choices this protocol fixes.
+
+**One method can therefore be the basis of several protocols.** Random forest classification is a single
+method with a single origin, but a published microbiome parameterization and a different published
+parameterization for the same data type are genuinely different procedures, producing different results
+from the same inputs. Each is its own protocol. They share a `method_citation` and are distinguished by
+their `protocol_citation`.
+
+This is what keeps the one-method-one-citation rule from forcing unlike procedures into one document.
+Protocols that share a `method_citation` are siblings; the `protocol_citation` says which sibling this is.
+
+A test for which field a DOI belongs in: **if the protocol's steps were rewritten, would the DOI still be
+right?** A method's origin survives any rewrite — `method_citation`. A publication describing this
+procedure does not, because the procedure would no longer be the one described — `protocol_citation`.
 
 ### YAML Frontmatter Schema
 
@@ -47,10 +67,10 @@ All fields must use `snake_case`.
 **Optional Fields:**
 *   `type`: (String: `atomic` | `composite`) Protocol architectural type (defaults to `atomic` if `protocols_used` is empty).
 *   `license`: (String) License identifier (e.g., "CC-BY-4.0").
-*   `protocol_doi`: (String) DOI for this specific protocol artifact (e.g., from protocols.io).
-*   `repository_doi`: (String) DOI for the entire repository/collection housing this protocol (e.g., a Zenodo record).
-*   `publication_doi`: (String) DOI for the peer-reviewed publication that describes or validates this protocol.
-*   `citation`: (String) DOI or PMID for the primary literature that proposed the protocol method.
+*   `method_citation`: (String) DOI or PMID for the primary literature that **proposed the method** this protocol performs. Describes the method in general, independent of how this protocol applies it. Required for an atomic protocol that claims a method; must be absent on a composite, which proposes none.
+*   `protocol_citation`: (String) DOI for a peer-reviewed publication that **describes or validates this protocol specifically** — the procedure as written here, including its parameterization.
+*   `artifact_doi`: (String) DOI identifying **this document** as a citable artifact (e.g., from protocols.io).
+*   `collection_doi`: (String) DOI identifying the **repository or collection** housing this protocol (e.g., a Zenodo record).
 *   `upstream_repositories`: (Array of Strings) URLs to source code repositories containing upstream tools or pipeline implementations.
 *   `database_urls`: (Array of Strings) URLs for pre-computed, reference, or previous versions of database artifacts.
 *   `protocols_used`: (Array of Objects) Sequential execution dependencies / constituent protocols (for composite workflows).
@@ -237,11 +257,11 @@ status: draft
 license: CC-BY-4.0
 type: atomic
 
-protocol_doi: ~
-repository_doi: ~
-publication_doi: ~
+artifact_doi: ~
+collection_doi: ~
+protocol_citation: ~
 
-citation: "10.1016/j.cell.2019.01.001"
+method_citation: "10.1016/j.cell.2019.01.001"
 
 upstream_repositories:
   - "https://github.com/biobakery/metaphlan"

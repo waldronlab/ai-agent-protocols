@@ -19,7 +19,7 @@ date: 2026-03-01
 status: draft
 license: CC-BY-4.0
 type: atomic
-method_citation: "10.1000/example"
+citation: "10.1000/example"
 protocols_used: []
 key_packages: []
 category: example
@@ -54,11 +54,7 @@ This protocol exists only to exercise `scripts/validate-protocol.R`. It is not a
 - Made the output path of Step 1 explicit.
 
 #### Reviews
-
-**Review by Marie Curie**
-- **Date:** 2026-03-05
-- **Status:** `approved`
-- **Notes:** Read for scientific soundness.
+*No reviews yet.*
 
 ### Version 1.0.0 (2026-01-15)
 

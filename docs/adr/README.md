@@ -12,5 +12,6 @@ This directory contains Architecture Decision Records (ADRs) for the `agent-prot
 - [0006. Separate the Standard from Protocol Content](0006-separate-standard-from-protocol-content.md)
 - [0007. Host the Protocol Runner with the Standard](0007-host-the-runner-with-the-standard.md)
 - [0008. Flat Federation Instead of Hierarchical Registries](0008-flat-federation-instead-of-hierarchical-registries.md)
+- [0009. Name Metadata Fields by What They Identify](0009-name-metadata-fields-by-what-they-identify.md) — amends 0001, 0003, 0004
 
 

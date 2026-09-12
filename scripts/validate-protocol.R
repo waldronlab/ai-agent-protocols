@@ -417,15 +417,37 @@ validate_protocol <- function(file_path) {
     if (length(frontmatter$protocols_used) > 0) "composite" else "atomic"
   }
   
-  # Check citation field
+  # Check method_citation field
   if (!is.null(frontmatter$citations)) {
-    cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'citation' (singular string).\n", frontmatter$name))
+    cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'method_citation' (singular string).\n", frontmatter$name))
     return(FALSE)
   }
+
+  # Fields renamed so that each name says what it identifies (ADR 0009).
+  # Rejected rather than accepted-with-warning: the spec is pre-1.0 and no protocol predates the rename.
+  renamed_fields <- list(
+    citation        = "method_citation",
+    publication_doi = "protocol_citation",
+    protocol_doi    = "artifact_doi",
+    repository_doi  = "collection_doi"
+  )
+  for (old_name in names(renamed_fields)) {
+    # Presence, not value: a YAML null placeholder such as `protocol_doi: ~` parses to NULL, and the
+    # pre-rename template used exactly that spelling, so a value check would let old names through.
+    if (old_name %in% names(frontmatter)) {
+      cat(sprintf("  [ERROR] Field '%s' was renamed to '%s' (see PROTOCOL_STANDARD.md) in '%s'\n",
+                  old_name, renamed_fields[[old_name]], frontmatter$name))
+      return(FALSE)
+    }
+  }
   
-  if (!is.null(frontmatter$citation)) {
-    if (!is.character(frontmatter$citation) || length(frontmatter$citation) != 1) {
-      cat(sprintf("  [ERROR] 'citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
+  if ("method_citation" %in% names(frontmatter)) {
+    if (protocol_type == "composite") {
+      cat(sprintf("  [ERROR] Composite protocol '%s' must not define 'method_citation'; it proposes no method. Use 'protocol_citation' for a publication describing the pipeline.\n", frontmatter$name))
+      return(FALSE)
+    }
+    if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
+      cat(sprintf("  [ERROR] 'method_citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
       return(FALSE)
     }
   }

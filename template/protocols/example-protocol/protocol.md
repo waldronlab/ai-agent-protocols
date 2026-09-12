@@ -12,14 +12,20 @@ status: draft                     # draft | stable | deprecated | superseded
 license: CC-BY-4.0
 type: atomic                      # atomic | composite
 
-# An atomic protocol carries exactly one `citation`: the primary literature where the
-# method it implements was published. This is the field that makes the protocol citable.
-citation: "10.0000/replace-with-a-real-doi"
+# An atomic protocol carries exactly one `method_citation`: the primary literature where the
+# method it implements was originally published. It records the method's origin — not this
+# document's identity, which is `artifact_doi` below. A composite protocol has no
+# `method_citation`; it proposes no method and inherits those of the protocols it composes.
+method_citation: "10.0000/replace-with-a-real-doi"
 
-# DOIs for the protocol artifact and its host collection, if they exist. Delete if not.
-protocol_doi: ~
-repository_doi: ~
-publication_doi: ~
+# A publication that describes or validates THIS protocol — the procedure as written here,
+# including its parameterization. Distinct from `method_citation`, which names the method in
+# general. Delete if there is none.
+protocol_citation: ~
+
+# DOIs identifying this document and the collection housing it, if they exist. Delete if not.
+artifact_doi: ~
+collection_doi: ~
 
 # Where an agent can find the tools and reference data this protocol needs.
 upstream_repositories: []
