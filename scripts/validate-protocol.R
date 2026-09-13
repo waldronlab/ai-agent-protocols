@@ -83,7 +83,9 @@ describe_value <- function(x) {
   if (is.list(x)) return(sprintf("a %s of %d element(s)",
                                  if (!is.null(names(x))) "mapping" else "list", length(x)))
   if (length(x) != 1L) return(sprintf("%d values", length(x)))
-  sprintf("a %s ('%s')", class(x)[1], tryCatch(format(x), error = function(e) "?"))
+  cls <- class(x)[1]
+  article <- if (grepl("^[aeiou]", cls)) "an" else "a"
+  sprintf("%s %s ('%s')", article, cls, tryCatch(format(x), error = function(e) "?"))
 }
 
 # Drops YAML frontmatter and fenced code blocks, so that a heading shown inside a worked example
@@ -511,11 +513,22 @@ validate_protocol <- function(file_path) {
 
   # Check authors format
   if (!is.list(frontmatter$authors) || length(frontmatter$authors) == 0) {
-    errors <- c(errors, "'authors' must be a non-empty list of objects")
+    errors <- c(errors, sprintf("'authors' must be a non-empty list of objects, found %s",
+                                describe_value(frontmatter$authors)))
   } else {
     for (author in frontmatter$authors) {
+      # The entry itself, before anything is read out of it. `$` on an atomic vector is an error,
+      # not NULL, so a bare `- Ada Lovelace` entry aborts the run rather than being reported.
+      if (!is.list(author)) {
+        errors <- c(errors, sprintf("Each 'authors' entry must be an object with a 'name', found %s",
+                                    describe_value(author)))
+        next
+      }
       if (is.null(author$name)) {
         errors <- c(errors, "All authors must have a 'name' field")
+      } else if (!scalar_string(author$name)) {
+        errors <- c(errors, sprintf("An author 'name' must be a single string, found %s",
+                                    describe_value(author$name)))
       }
       # An author ORCID is recommended, not required, so its absence is fine. A malformed one is
       # not: it is a claim about a specific named person that resolves to nobody. Reviewer ORCIDs
@@ -533,6 +546,14 @@ validate_protocol <- function(file_path) {
         }
       }
     }
+  }
+
+  # `date` is required and was never shape-checked: `date: ~` reached validate_history(), where the
+  # comparison against a zero-length value produced no error at all, and the protocol validated
+  # clean. A list-valued date produced one confusing error per element instead.
+  if (!scalar_string(frontmatter$date) || !is_valid_date(frontmatter$date)) {
+    errors <- c(errors, sprintf("'date' must be a single YYYY-MM-DD date, found %s",
+                                describe_value(frontmatter$date)))
   }
 
   for (field in c("description", "version")) {
@@ -645,9 +666,19 @@ validate_protocol <- function(file_path) {
   }
 
   # Check protocols_used structure for composite/dependent protocols
-  if (n_deps > 0) {
+  if (!is.null(frontmatter$protocols_used) && !is.list(frontmatter$protocols_used)) {
+    errors <- c(errors, sprintf("'protocols_used' must be a list of objects, found %s",
+                                describe_value(frontmatter$protocols_used)))
+  } else if (n_deps > 0) {
     for (dep in frontmatter$protocols_used) {
-      if (is.null(dep$name) || is.null(dep$repository) || is.null(dep$version)) {
+      # As with authors: validate the entry before dereferencing it. `protocols_used: [foo]`
+      # reached `dep$name` on a character and aborted the run.
+      if (!is.list(dep)) {
+        errors <- c(errors, sprintf("Each entry in 'protocols_used' must be an object with 'name', 'repository' and 'version', found %s",
+                                    describe_value(dep)))
+        next
+      }
+      if (!scalar_string(dep$name) || !scalar_string(dep$repository) || !scalar_string(dep$version)) {
         errors <- c(errors, "Each entry in 'protocols_used' must have 'name', 'repository', and 'version'")
         next
       }

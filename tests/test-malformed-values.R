@@ -19,12 +19,16 @@
 
 malformed_dir <- file.path(tempdir(), "malformed-values")
 
-# The shapes a YAML scalar field can arrive as, other than the string it should be.
+# The shapes a YAML scalar field can arrive as, other than the string it should be. Numeric and
+# logical are here because `name: 123` is a case the validator has already mishandled once: it
+# parses to a number, matches a numerically-named directory, and skipped the pattern check.
 bad_values <- list(
   "null"    = "~",
   "list"    = "[alpha, beta]",
   "mapping" = "{value: alpha}",
-  "empty"   = '""'
+  "empty"   = '""',
+  "numeric" = "123",
+  "logical" = "true"
 )
 
 # Every scalar frontmatter field the validator reads, and the line in the fixture it replaces.
@@ -32,6 +36,7 @@ scalar_fields <- list(
   name            = "name: example-protocol",
   description     = NULL,   # filled in below from the fixture
   version         = NULL,
+  date            = NULL,
   status          = "status: draft",
   type            = "type: atomic",
   method_citation = 'method_citation: "10.1000/example"'
@@ -72,7 +77,66 @@ for (field in names(scalar_fields)) {
   }
 }
 
-# An author ORCID is optional, so it is not in the matrix above, but a malformed one must behave
+# The container fields. A scalar matrix misses these entirely, and they are where the same bug
+# reappeared one level up: the entry is dereferenced with `$`, which is an error rather than NULL
+# on an atomic value, so `protocols_used: [foo]` aborted the run after the scalar fields were
+# hardened. Each case replaces a whole block rather than one line.
+container_cases <- list(
+  list(name = "authors scalar entry",
+       from = "^authors:$", to = "^reviews:$",
+       lines = "authors: [Ada Lovelace]"),
+  list(name = "authors non-scalar name",
+       from = "^authors:$", to = "^reviews:$",
+       lines = c("authors:", "  - name: [Ada, Lovelace]")),
+  list(name = "authors null",
+       from = "^authors:$", to = "^reviews:$",
+       lines = "authors: ~"),
+  list(name = "authors mapping",
+       from = "^authors:$", to = "^reviews:$",
+       lines = "authors: {name: Ada Lovelace}"),
+  list(name = "protocols_used scalar entry",
+       from = "^protocols_used: \\[\\]$", to = NULL,
+       lines = "protocols_used: [some-protocol]"),
+  list(name = "protocols_used scalar",
+       from = "^protocols_used: \\[\\]$", to = NULL,
+       lines = "protocols_used: some-protocol"),
+  list(name = "protocols_used entry missing fields",
+       from = "^protocols_used: \\[\\]$", to = NULL,
+       lines = c("protocols_used:", "  - name: other-protocol")),
+  list(name = "reviews scalar entry",
+       from = "^reviews:$", to = "^date:$|^date: ",
+       lines = "reviews: [looks fine]")
+)
+
+for (case in container_cases) {
+  start <- grep(case$from, template)
+  if (length(start) != 1) {
+    check(sprintf("malformed %s: fixture block found", case$name), FALSE,
+          sprintf("pattern '%s' matched %d lines", case$from, length(start)))
+    next
+  }
+  stop_at <- if (is.null(case$to)) start else {
+    after <- grep(case$to, template)
+    after <- after[after > start]
+    if (length(after) == 0) length(template) else after[1] - 1
+  }
+  dir <- file.path(malformed_dir, gsub("[^a-z0-9]+", "-", tolower(case$name)),
+                   "protocols", "example-protocol")
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  lines <- c(template[seq_len(start - 1)], case$lines,
+             if (stop_at < length(template)) template[(stop_at + 1):length(template)])
+  writeLines(lines, file.path(dir, "protocol.md"))
+
+  result <- run_validator(dirname(dir))
+  check(sprintf("malformed %s: does not crash the validator", case$name),
+        !grepl("(^|\n)Error|Execution halted", result$output),
+        sprintf("uncaught R error:\n%s", result$output))
+  check(sprintf("malformed %s: is reported and fails", case$name),
+        result$status != 0 && grepl("[ERROR]", result$output, fixed = TRUE),
+        sprintf("status %d, output:\n%s", result$status, result$output))
+}
+
+# An author ORCID is optional, so it is not in the scalar matrix, but a malformed one must behave
 # the same way rather than reaching grepl() as a list.
 for (shape in c("list", "mapping")) {
   dir <- file.path(malformed_dir, paste0("author-orcid-", shape), "protocols", "example-protocol")
