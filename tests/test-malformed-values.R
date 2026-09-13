@@ -105,8 +105,41 @@ container_cases <- list(
        lines = c("protocols_used:", "  - name: other-protocol")),
   list(name = "reviews scalar entry",
        from = "^reviews:$", to = "^date:$|^date: ",
-       lines = "reviews: [looks fine]")
+       lines = "reviews: [looks fine]"),
+  list(name = "reviews mapping",
+       from = "^reviews:$", to = "^date:$|^date: ",
+       lines = "reviews: {grace: {name: Grace Hopper}}"),
+  list(name = "authors mapping instead of sequence",
+       from = "^authors:$", to = "^reviews:$",
+       lines = "authors: {ada: {name: Ada Lovelace}}"),
+  list(name = "protocols_used mapping instead of sequence",
+       from = "^protocols_used: \\[\\]$", to = NULL,
+       lines = "protocols_used: {other: {name: other-protocol}}")
 )
+
+# A review entry is an object whose own fields are then coerced and tested. Guarding the entry but
+# not its fields is the same bug one level deeper: a two-element `status` or `date` reached a
+# length-sensitive `if` inside validate_history() and aborted the run, after the entry-level guard
+# was already in place.
+review_field_shapes <- list(
+  name             = "[Grace, Hopper]",
+  date             = "[2026-02-01, 2026-02-02]",
+  protocol_version = "[1.0.0, 1.1.0]",
+  status           = "[approved, deprecated]",
+  orcid            = "[0000-0001-5109-3700, 0000-0002-1825-0097]"
+)
+for (field in names(review_field_shapes)) {
+  container_cases <- c(container_cases, list(list(
+    name = paste("review", field, "non-scalar"),
+    from = "^reviews:$", to = "^date:$|^date: ",
+    lines = c("reviews:",
+              "  - name: Grace Hopper",
+              "    date: 2026-02-01",
+              "    protocol_version: 1.0.0",
+              "    status: approved",
+              sprintf("    %s: %s", field, review_field_shapes[[field]]))
+  )))
+}
 
 for (case in container_cases) {
   start <- grep(case$from, template)

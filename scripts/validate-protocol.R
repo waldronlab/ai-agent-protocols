@@ -379,15 +379,18 @@ validate_history <- function(file_path, frontmatter) {
     version = character(0), name = character(0), date = character(0),
     status = character(0), orcid = character(0), stringsAsFactors = FALSE)
   if (!is.null(frontmatter$reviews)) {
-    if (!is.list(frontmatter$reviews)) {
-      errors <- c(errors, "'reviews' must be a list of objects")
+    # A YAML mapping is also a list in R, and a named one passes an is.list() test while being the
+    # wrong shape entirely: the schema calls this an array of objects.
+    if (!is.list(frontmatter$reviews) || !is.null(names(frontmatter$reviews))) {
+      errors <- c(errors, sprintf("'reviews' must be a list of objects, found %s",
+                                  describe_value(frontmatter$reviews)))
     } else {
       for (review in frontmatter$reviews) {
         if (!is.list(review)) {
           errors <- c(errors, "Each 'reviews' entry must be an object, not a bare value")
           next
         }
-        who <- if (is.null(review$name)) "<unnamed>" else as.character(review$name)
+        who <- if (scalar_string(review$name)) review$name else "<unnamed>"
         missing_keys <- setdiff(c("name", "date", "protocol_version", "status"), names(review))
         if (length(missing_keys) > 0) {
           errors <- c(errors, sprintf(
@@ -395,29 +398,48 @@ validate_history <- function(file_path, frontmatter) {
             who, paste(missing_keys, collapse = ", ")))
           next
         }
-        status <- as.character(review$status)
+        # Shape before use, as in validate_protocol(). Coercing first and testing after is what let
+        # `status: [approved, deprecated]` reach a length-2 `if` and abort the run, and a two-element
+        # review date reach is_valid_date() the same way — one malformed review taking down the
+        # report for every protocol.
+        malformed <- character(0)
+        for (field in c("name", "date", "protocol_version", "status")) {
+          if (!scalar_string(review[[field]])) {
+            malformed <- c(malformed, sprintf("'%s' (%s)", field, describe_value(review[[field]])))
+          }
+        }
+        if (!is.null(review$orcid) && !scalar_string(review$orcid)) {
+          malformed <- c(malformed, sprintf("'orcid' (%s)", describe_value(review$orcid)))
+        }
+        if (length(malformed) > 0) {
+          errors <- c(errors, sprintf(
+            "Review entry for '%s' has field(s) that must each be a single string: %s",
+            who, paste(malformed, collapse = ", ")))
+          next
+        }
+        status <- review$status
         if (!status %in% review_statuses) {
           errors <- c(errors, sprintf(
             "Review by '%s' has invalid status '%s'. Must be one of: %s",
             who, status, paste(review_statuses, collapse = ", ")))
         }
-        if (!is.null(review$orcid) && !grepl(orcid_pattern, as.character(review$orcid))) {
+        if (!is.null(review$orcid) && !grepl(orcid_pattern, review$orcid)) {
           errors <- c(errors, sprintf("Review by '%s' has a malformed 'orcid': %s", who, review$orcid))
         }
-        if (!is_valid_date(as.character(review$date))) {
+        if (!is_valid_date(review$date)) {
           errors <- c(errors, sprintf(
             "Review by '%s' has an invalid 'date': %s (expected YYYY-MM-DD)", who, review$date))
         }
-        reviewed_version <- as.character(review$protocol_version)
+        reviewed_version <- review$protocol_version
         if (!reviewed_version %in% versions[parseable]) {
           errors <- c(errors, sprintf(
             "Review by '%s' declares protocol_version '%s', which has no matching entry in '## History & Reviews'",
             who, reviewed_version))
         }
         fm_reviews <- rbind(fm_reviews, data.frame(
-          version = reviewed_version, name = who, date = as.character(review$date),
+          version = reviewed_version, name = who, date = review$date,
           status = status,
-          orcid = if (is.null(review$orcid)) NA_character_ else as.character(review$orcid),
+          orcid = if (is.null(review$orcid)) NA_character_ else review$orcid,
           stringsAsFactors = FALSE))
       }
     }
@@ -512,7 +534,10 @@ validate_protocol <- function(file_path) {
   }
 
   # Check authors format
-  if (!is.list(frontmatter$authors) || length(frontmatter$authors) == 0) {
+  # A mapping (`authors: {Ada: {name: ...}}`) is a named list, which passes is.list() while being
+  # the wrong shape: the schema calls for an array of objects.
+  if (!is.list(frontmatter$authors) || !is.null(names(frontmatter$authors)) ||
+      length(frontmatter$authors) == 0) {
     errors <- c(errors, sprintf("'authors' must be a non-empty list of objects, found %s",
                                 describe_value(frontmatter$authors)))
   } else {
@@ -666,7 +691,8 @@ validate_protocol <- function(file_path) {
   }
 
   # Check protocols_used structure for composite/dependent protocols
-  if (!is.null(frontmatter$protocols_used) && !is.list(frontmatter$protocols_used)) {
+  if (!is.null(frontmatter$protocols_used) &&
+      (!is.list(frontmatter$protocols_used) || !is.null(names(frontmatter$protocols_used)))) {
     errors <- c(errors, sprintf("'protocols_used' must be a list of objects, found %s",
                                 describe_value(frontmatter$protocols_used)))
   } else if (n_deps > 0) {
