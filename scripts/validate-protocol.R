@@ -67,6 +67,83 @@ semver_pattern <- "^[0-9]+\\.[0-9]+\\.[0-9]+$"
 date_pattern <- "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 version_heading_pattern <- "^###[[:space:]]+Version[[:space:]]+([^[:space:]]+)[[:space:]]+\\(([0-9]{4}-[0-9]{2}-[0-9]{2})\\)[[:space:]]*$"
 
+# YAML gives a field whatever shape the author wrote: a string, a number, a list, a mapping, or
+# NULL for `field: ~`. Nearly every check here needs the same question answered — is this one
+# string? — and answering it inline per field is what let `name: ~`, `name: [a, b]` and
+# `type: [atomic, composite]` each abort the run in turn, one field at a time.
+scalar_string <- function(x) is.character(x) && length(x) == 1L && !is.na(x)
+
+# A value's description for an error message. Never coerces: as.character() on a mapping deparses
+# it into something that reads like a value the author wrote ("found: 'atomic'" for
+# `type: {value: atomic}`), and on other shapes it can fail outright — inside the very message
+# meant to report the bad shape.
+describe_value <- function(x) {
+  if (is.null(x)) return("nothing (the field is empty or `~`)")
+  if (scalar_string(x)) return(sprintf("'%s'", x))
+  if (is.list(x)) return(sprintf("a %s of %d element(s)",
+                                 if (!is.null(names(x))) "mapping" else "list", length(x)))
+  if (length(x) != 1L) return(sprintf("%d values", length(x)))
+  cls <- class(x)[1]
+  article <- if (grepl("^[aeiou]", cls)) "an" else "a"
+  sprintf("%s %s ('%s')", article, cls, tryCatch(format(x), error = function(e) "?"))
+}
+
+# Drops YAML frontmatter and fenced code blocks, so that a heading shown inside a worked example
+# is not mistaken for the document's own. A protocol whose '## Steps' exists only inside a ```markdown
+# illustration has no steps.
+strip_frontmatter_and_code <- function(lines) {
+  keep <- rep(TRUE, length(lines))
+  in_fence <- FALSE
+  fence <- NULL
+  fence_length <- 0L
+  in_frontmatter <- FALSE
+  for (i in seq_along(lines)) {
+    line <- lines[i]
+    # Frontmatter only when the file opens with it.
+    if (!in_fence && i == 1 && grepl("^---[[:space:]]*$", line)) {
+      in_frontmatter <- TRUE
+      keep[i] <- FALSE
+      next
+    }
+    if (in_frontmatter) {
+      keep[i] <- FALSE
+      if (grepl("^(---|\\.\\.\\.)[[:space:]]*$", line)) in_frontmatter <- FALSE
+      next
+    }
+    # CommonMark's rule, not an approximation of it: a closing fence uses the same character as
+    # the opener, is at least as long, and carries nothing but whitespace after it. Recording only
+    # the character let a lone ``` close a ```` block, and ignoring the suffix let ```not-a-close
+    # close one — either way the rest of the example leaked out as prose and satisfied the
+    # structural checks it was supposed to fail.
+    marker <- regmatches(line, regexpr("^[[:space:]]{0,3}(`{3,}|~{3,})", line))
+    if (length(marker) == 1) {
+      run <- trimws(marker)
+      token <- substr(run, 1, 1)
+      run_length <- nchar(run)
+      suffix <- sub("^[[:space:]]{0,3}(`{3,}|~{3,})", "", line)
+      if (!in_fence) {
+        # An opening backtick fence's info string may not contain a backtick; otherwise anything.
+        if (!identical(token, "`") || !grepl("`", suffix, fixed = TRUE)) {
+          in_fence <- TRUE
+          fence <- token
+          fence_length <- run_length
+          keep[i] <- FALSE
+          next
+        }
+      } else if (identical(token, fence) && run_length >= fence_length &&
+                 grepl("^[[:space:]]*$", suffix)) {
+        in_fence <- FALSE
+        fence <- NULL
+        fence_length <- 0L
+        keep[i] <- FALSE
+        next
+      }
+    }
+    if (in_fence) keep[i] <- FALSE
+  }
+  lines[keep]
+}
+
 # "Jane Doe ([0000-...](https://orcid.org/0000-...))" -> "Jane Doe"
 strip_orcid_suffix <- function(x) trimws(sub("[[:space:]]*\\(\\[.*\\]\\(.*\\)\\)$", "", x))
 
@@ -302,15 +379,18 @@ validate_history <- function(file_path, frontmatter) {
     version = character(0), name = character(0), date = character(0),
     status = character(0), orcid = character(0), stringsAsFactors = FALSE)
   if (!is.null(frontmatter$reviews)) {
-    if (!is.list(frontmatter$reviews)) {
-      errors <- c(errors, "'reviews' must be a list of objects")
+    # A YAML mapping is also a list in R, and a named one passes an is.list() test while being the
+    # wrong shape entirely: the schema calls this an array of objects.
+    if (!is.list(frontmatter$reviews) || !is.null(names(frontmatter$reviews))) {
+      errors <- c(errors, sprintf("'reviews' must be a list of objects, found %s",
+                                  describe_value(frontmatter$reviews)))
     } else {
       for (review in frontmatter$reviews) {
         if (!is.list(review)) {
           errors <- c(errors, "Each 'reviews' entry must be an object, not a bare value")
           next
         }
-        who <- if (is.null(review$name)) "<unnamed>" else as.character(review$name)
+        who <- if (scalar_string(review$name)) review$name else "<unnamed>"
         missing_keys <- setdiff(c("name", "date", "protocol_version", "status"), names(review))
         if (length(missing_keys) > 0) {
           errors <- c(errors, sprintf(
@@ -318,29 +398,48 @@ validate_history <- function(file_path, frontmatter) {
             who, paste(missing_keys, collapse = ", ")))
           next
         }
-        status <- as.character(review$status)
+        # Shape before use, as in validate_protocol(). Coercing first and testing after is what let
+        # `status: [approved, deprecated]` reach a length-2 `if` and abort the run, and a two-element
+        # review date reach is_valid_date() the same way — one malformed review taking down the
+        # report for every protocol.
+        malformed <- character(0)
+        for (field in c("name", "date", "protocol_version", "status")) {
+          if (!scalar_string(review[[field]])) {
+            malformed <- c(malformed, sprintf("'%s' (%s)", field, describe_value(review[[field]])))
+          }
+        }
+        if (!is.null(review$orcid) && !scalar_string(review$orcid)) {
+          malformed <- c(malformed, sprintf("'orcid' (%s)", describe_value(review$orcid)))
+        }
+        if (length(malformed) > 0) {
+          errors <- c(errors, sprintf(
+            "Review entry for '%s' has field(s) that must each be a single string: %s",
+            who, paste(malformed, collapse = ", ")))
+          next
+        }
+        status <- review$status
         if (!status %in% review_statuses) {
           errors <- c(errors, sprintf(
             "Review by '%s' has invalid status '%s'. Must be one of: %s",
             who, status, paste(review_statuses, collapse = ", ")))
         }
-        if (!is.null(review$orcid) && !grepl(orcid_pattern, as.character(review$orcid))) {
+        if (!is.null(review$orcid) && !grepl(orcid_pattern, review$orcid)) {
           errors <- c(errors, sprintf("Review by '%s' has a malformed 'orcid': %s", who, review$orcid))
         }
-        if (!is_valid_date(as.character(review$date))) {
+        if (!is_valid_date(review$date)) {
           errors <- c(errors, sprintf(
             "Review by '%s' has an invalid 'date': %s (expected YYYY-MM-DD)", who, review$date))
         }
-        reviewed_version <- as.character(review$protocol_version)
+        reviewed_version <- review$protocol_version
         if (!reviewed_version %in% versions[parseable]) {
           errors <- c(errors, sprintf(
             "Review by '%s' declares protocol_version '%s', which has no matching entry in '## History & Reviews'",
             who, reviewed_version))
         }
         fm_reviews <- rbind(fm_reviews, data.frame(
-          version = reviewed_version, name = who, date = as.character(review$date),
+          version = reviewed_version, name = who, date = review$date,
           status = status,
-          orcid = if (is.null(review$orcid)) NA_character_ else as.character(review$orcid),
+          orcid = if (is.null(review$orcid)) NA_character_ else review$orcid,
           stringsAsFactors = FALSE))
       }
     }
@@ -411,18 +510,23 @@ validate_protocol <- function(file_path) {
   errors <- character(0)
   body <- readLines(file_path, warn = FALSE)
 
-  # Check directory structure matches name
+  # Shape before comparison. `name: ~` parses to NULL and `name: [a, b]` to a vector, and either
+  # one reaching the `if` below aborts the whole run with an R error rather than reporting the
+  # problem through the accumulated path — taking every other protocol's report down with it.
   dir_name <- basename(dirname(file_path))
-  if (dir_name != frontmatter$name) {
+  name_is_scalar_string <- scalar_string(frontmatter$name)
+
+  # Check directory structure matches name
+  if (name_is_scalar_string && dir_name != frontmatter$name) {
     errors <- c(errors, sprintf("Directory name '%s' does not match protocol name '%s'",
                                 dir_name, frontmatter$name))
   }
 
   # A guard that only *skips* on the wrong type lets the wrong type through: an unquoted `name: 123`
   # parses to a number, matches a '123/' directory, and never reaches the pattern below.
-  if (!is.character(frontmatter$name) || length(frontmatter$name) != 1) {
-    errors <- c(errors, sprintf("'name' must be a single string, found: %s of length %d",
-                                class(frontmatter$name)[1], length(frontmatter$name)))
+  if (!name_is_scalar_string) {
+    errors <- c(errors, sprintf("'name' must be a single string, found %s",
+                                describe_value(frontmatter$name)))
   } else if (!grepl(kebab_case_pattern, frontmatter$name)) {
     errors <- c(errors, sprintf(
       "'name' must be kebab-case: lowercase letters and digits separated by single hyphens. Found '%s'",
@@ -430,22 +534,37 @@ validate_protocol <- function(file_path) {
   }
 
   # Check authors format
-  if (!is.list(frontmatter$authors) || length(frontmatter$authors) == 0) {
-    errors <- c(errors, "'authors' must be a non-empty list of objects")
+  # A mapping (`authors: {Ada: {name: ...}}`) is a named list, which passes is.list() while being
+  # the wrong shape: the schema calls for an array of objects.
+  if (!is.list(frontmatter$authors) || !is.null(names(frontmatter$authors)) ||
+      length(frontmatter$authors) == 0) {
+    errors <- c(errors, sprintf("'authors' must be a non-empty list of objects, found %s",
+                                describe_value(frontmatter$authors)))
   } else {
     for (author in frontmatter$authors) {
+      # The entry itself, before anything is read out of it. `$` on an atomic vector is an error,
+      # not NULL, so a bare `- Ada Lovelace` entry aborts the run rather than being reported.
+      if (!is.list(author)) {
+        errors <- c(errors, sprintf("Each 'authors' entry must be an object with a 'name', found %s",
+                                    describe_value(author)))
+        next
+      }
       if (is.null(author$name)) {
         errors <- c(errors, "All authors must have a 'name' field")
+      } else if (!scalar_string(author$name)) {
+        errors <- c(errors, sprintf("An author 'name' must be a single string, found %s",
+                                    describe_value(author$name)))
       }
       # An author ORCID is recommended, not required, so its absence is fine. A malformed one is
       # not: it is a claim about a specific named person that resolves to nobody. Reviewer ORCIDs
       # were already checked this way; this is the same field in the other place it appears.
-      author_label <- if (is.null(author$name)) "?" else author$name
+      author_label <- if (scalar_string(author$name)) author$name else "?"
       if (!is.null(author$orcid)) {
         # Type and length first: `&&` reads only the first element, so a list of ORCIDs would be
         # judged on its first entry and a malformed second one never reported.
-        if (!is.character(author$orcid) || length(author$orcid) != 1) {
-          errors <- c(errors, sprintf("Author '%s' must have a single 'orcid' string", author_label))
+        if (!scalar_string(author$orcid)) {
+          errors <- c(errors, sprintf("Author '%s' must have a single 'orcid' string, found %s",
+                                      author_label, describe_value(author$orcid)))
         } else if (!grepl(orcid_pattern, author$orcid)) {
           errors <- c(errors, sprintf("Author '%s' has a malformed ORCID: '%s'",
                                       author_label, author$orcid))
@@ -454,23 +573,42 @@ validate_protocol <- function(file_path) {
     }
   }
 
-  if (!is.character(frontmatter$status) || length(frontmatter$status) != 1 ||
-      !frontmatter$status %in% protocol_statuses) {
-    errors <- c(errors, sprintf("'status' must be one of %s, found: '%s'",
+  # `date` is required and was never shape-checked: `date: ~` reached validate_history(), where the
+  # comparison against a zero-length value produced no error at all, and the protocol validated
+  # clean. A list-valued date produced one confusing error per element instead.
+  if (!scalar_string(frontmatter$date) || !is_valid_date(frontmatter$date)) {
+    errors <- c(errors, sprintf("'date' must be a single YYYY-MM-DD date, found %s",
+                                describe_value(frontmatter$date)))
+  }
+
+  for (field in c("description", "version")) {
+    if (!scalar_string(frontmatter[[field]])) {
+      errors <- c(errors, sprintf("'%s' must be a single string, found %s",
+                                  field, describe_value(frontmatter[[field]])))
+    } else if (!nzchar(trimws(frontmatter[[field]]))) {
+      errors <- c(errors, sprintf("'%s' is required and must not be blank", field))
+    }
+  }
+
+  if (!scalar_string(frontmatter$status) || !frontmatter$status %in% protocol_statuses) {
+    errors <- c(errors, sprintf("'status' must be one of %s, found %s",
                                 paste(sprintf("'%s'", protocol_statuses), collapse = ", "),
-                                paste(frontmatter$status, collapse = ", ")))
+                                describe_value(frontmatter$status)))
   }
 
   # Check type field if present
-  if (!is.null(frontmatter$type) && !frontmatter$type %in% c("atomic", "composite")) {
-    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found: '%s'",
-                                frontmatter$type))
+  type_is_valid <- scalar_string(frontmatter$type) && frontmatter$type %in% c("atomic", "composite")
+  if ("type" %in% names(frontmatter) && !type_is_valid) {
+    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found %s",
+                                describe_value(frontmatter$type)))
   }
 
   # 'type' is optional, so infer it the way a reader would when it is absent: a protocol that
-  # composes others is composite, and one that composes nothing is atomic.
+  # composes others is composite, and one that composes nothing is atomic. Inferred rather than
+  # trusted whenever `type` is not one valid scalar, so that `type: [atomic, composite]` reports a
+  # type error instead of reaching a length-2 `if` condition and aborting the run.
   n_deps <- if (is.null(frontmatter$protocols_used)) 0L else length(frontmatter$protocols_used)
-  effective_type <- if (!is.null(frontmatter$type)) frontmatter$type else {
+  effective_type <- if (type_is_valid) frontmatter$type else {
     if (n_deps > 0) "composite" else "atomic"
   }
 
@@ -517,8 +655,9 @@ validate_protocol <- function(file_path) {
     if (effective_type == "atomic") {
       errors <- c(errors, "An atomic protocol must carry a 'method_citation' naming the primary literature where the method was first proposed")
     }
-  } else if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
-    errors <- c(errors, "'method_citation' must be a single string (DOI or PMID)")
+  } else if (!scalar_string(frontmatter$method_citation)) {
+    errors <- c(errors, sprintf("'method_citation' must be a single string (DOI or PMID), found %s",
+                                describe_value(frontmatter$method_citation)))
   } else if (identical(frontmatter$method_citation, template_placeholder_citation)) {
     errors <- c(errors, sprintf("'method_citation' is still the template placeholder '%s'; replace it with the real citation",
                                 template_placeholder_citation))
@@ -529,28 +668,43 @@ validate_protocol <- function(file_path) {
 
   # The body sections. PROTOCOL_STANDARD.md requires '## Materials' and '## Steps' with at least one
   # '### Step': a document with neither is not a protocol, however complete its metadata is.
-  if (length(grep("^##[[:space:]]+Materials[[:space:]]*$", body)) == 0) {
+  # Checked against the prose only — a protocol whose sections appear solely inside a fenced
+  # example has none.
+  prose <- strip_frontmatter_and_code(body)
+  if (length(grep("^##[[:space:]]+Materials[[:space:]]*$", prose)) == 0) {
     errors <- c(errors, "Missing required '## Materials' section (see PROTOCOL_STANDARD.md)")
   }
-  step_heading <- grep("^##[[:space:]]+Steps[[:space:]]*$", body)
+  step_heading <- grep("^##[[:space:]]+Steps[[:space:]]*$", prose)
   if (length(step_heading) == 0) {
     errors <- c(errors, "Missing required '## Steps' section (see PROTOCOL_STANDARD.md)")
   } else {
     # Only this section's own headings count. Searching the whole document would let a '### Step'
     # under '## Notes' satisfy an empty '## Steps'. The trailing boundary keeps '### Steps' — a
-    # plausible typo for the section heading itself — from passing as a step.
-    after <- body[(step_heading[1] + 1):length(body)]
+    # plausible typo for the section heading itself — from passing as a step, while still
+    # admitting a bare '### Step', which the standard does not forbid.
+    after <- prose[(step_heading[1] + 1):length(prose)]
     next_section <- grep("^##[[:space:]]", after)
     section <- if (length(next_section) > 0) after[seq_len(next_section[1] - 1)] else after
-    if (length(grep("^###[[:space:]]+Step([[:space:]]|:)", section)) == 0) {
+    if (length(grep("^###[[:space:]]+Step([[:space:]]|:|$)", section)) == 0) {
       errors <- c(errors, "'## Steps' contains no '### Step' heading; a protocol must have at least one step")
     }
   }
 
   # Check protocols_used structure for composite/dependent protocols
-  if (n_deps > 0) {
+  if (!is.null(frontmatter$protocols_used) &&
+      (!is.list(frontmatter$protocols_used) || !is.null(names(frontmatter$protocols_used)))) {
+    errors <- c(errors, sprintf("'protocols_used' must be a list of objects, found %s",
+                                describe_value(frontmatter$protocols_used)))
+  } else if (n_deps > 0) {
     for (dep in frontmatter$protocols_used) {
-      if (is.null(dep$name) || is.null(dep$repository) || is.null(dep$version)) {
+      # As with authors: validate the entry before dereferencing it. `protocols_used: [foo]`
+      # reached `dep$name` on a character and aborted the run.
+      if (!is.list(dep)) {
+        errors <- c(errors, sprintf("Each entry in 'protocols_used' must be an object with 'name', 'repository' and 'version', found %s",
+                                    describe_value(dep)))
+        next
+      }
+      if (!scalar_string(dep$name) || !scalar_string(dep$repository) || !scalar_string(dep$version)) {
         errors <- c(errors, "Each entry in 'protocols_used' must have 'name', 'repository', and 'version'")
         next
       }
@@ -566,8 +720,12 @@ validate_protocol <- function(file_path) {
     }
   }
 
+  # sprintf() with a zero-length argument returns character(0), so a `name: ~` would have printed
+  # no errors at all — every message silently dropped by the line meant to report them. The
+  # directory is always available and is what the reader needs to find the file anyway.
+  display_name <- if (name_is_scalar_string) frontmatter$name else dir_name
   for (msg in errors) {
-    cat(sprintf("  [ERROR] %s in '%s'\n", msg, frontmatter$name))
+    cat(sprintf("  [ERROR] %s in '%s'\n", msg, display_name))
   }
 
   # Check the '## History & Reviews' feed and the frontmatter 'reviews' array. It reports its own
