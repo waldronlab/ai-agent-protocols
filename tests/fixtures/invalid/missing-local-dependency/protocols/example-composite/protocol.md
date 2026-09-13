@@ -22,6 +22,11 @@ tags: [example, fixture]
 Exercises the local-dependency check, which resolves `repository:` against the repository the
 validator is running in.
 
+## Materials
+
+- **Software & Repositories:**
+  - `example-tool` (https://example.org/example-tool) — version 1.0.
+
 ## Steps
 
 ### Step 1: Run the atomic protocol

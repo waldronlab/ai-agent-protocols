@@ -98,22 +98,37 @@ for (case in cases("invalid")) {
   }
 }
 
-# The starter protocol a new content repository copies must itself conform. It is the first thing an
-# adopter sees, and the one file they are most likely to keep the shape of, so a template that has
-# drifted from the standard teaches the drift.
+# The starter protocol a new content repository copies must conform in every respect but one: its
+# 'method_citation' is a placeholder, and the validator now rejects that exact string. So the
+# template is asserted to fail with precisely that error and no other. A new repository's first CI
+# run is therefore red until the adopter writes a real citation, which is the one thing the template
+# cannot do for them — and pinning the message still catches a template that has otherwise drifted
+# from the standard, which is what this check was always for.
 template_protocols <- file.path(tests_dir, "..", "template", "protocols")
+template_expected <- "is still the template placeholder"
 if (!dir.exists(template_protocols)) {
   cat("  [FAIL] template: no template/protocols directory\n")
   failures <- c(failures, "template")
 } else {
   result <- run_validator(template_protocols)
+  other_errors <- grep("\\[ERROR\\]", strsplit(result$output, "\n")[[1]], value = TRUE)
+  other_errors <- other_errors[!grepl(template_expected, other_errors, fixed = TRUE)]
   if (result$status == 0) {
-    cat("  [PASS] template/protocols\n")
-    passed <- passed + 1L
-  } else {
-    cat(sprintf("  [FAIL] template/protocols: the starter protocol does not conform\n%s\n",
+    cat("  [FAIL] template/protocols: expected the placeholder citation to be rejected, but it passed\n")
+    failures <- c(failures, "template")
+  } else if (!grepl(template_expected, result$output, fixed = TRUE)) {
+    # Absence of other errors is not evidence of the right one: a crash before any [ERROR] line
+    # also exits nonzero and leaves 'other_errors' empty.
+    cat(sprintf("  [FAIL] template/protocols: failed, but not on its placeholder citation\n%s\n",
                 result$output))
     failures <- c(failures, "template")
+  } else if (length(other_errors) > 0) {
+    cat(sprintf("  [FAIL] template/protocols: the starter protocol does not conform, beyond its placeholder citation\n%s\n",
+                paste(other_errors, collapse = "\n")))
+    failures <- c(failures, "template")
+  } else {
+    cat("  [PASS] template/protocols fails only on its placeholder citation\n")
+    passed <- passed + 1L
   }
 }
 

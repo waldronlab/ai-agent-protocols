@@ -43,7 +43,26 @@ required_fields <- c("name", "description", "version", "authors", "date", "statu
 # Controlled vocabulary for review statuses (see PROTOCOL_STANDARD.md). There is deliberately no
 # "unreviewed" value: a version nobody has reviewed simply has no entry.
 review_statuses <- c("approved", "verified-with-benchmark", "changes-requested", "deprecated")
+
+# The protocol's own lifecycle, distinct from the review vocabulary above (PROTOCOL_STANDARD.md).
+# The runner ranks on these and refuses to execute a 'deprecated' protocol, so an unchecked typo
+# here disarms the standard's only hard safety rule.
+protocol_statuses <- c("draft", "stable", "deprecated", "superseded")
+
 orcid_pattern <- "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$"
+
+# 'name' is the protocol's identifier in the directory layout, the index, and every dependency
+# reference, so one capital or underscore splits a protocol into two spellings that never resolve
+# to each other.
+kebab_case_pattern <- "^[a-z0-9]+(-[a-z0-9]+)*$"
+
+# A DOI or a PubMed ID. The point is to reject free-text placeholders ("see the HUMAnN paper"),
+# which cannot be resolved by a reader or an agent.
+citation_pattern <- "^(10\\.[0-9]{4,9}/[^[:space:]]+|PMID:[0-9]+)$"
+
+# The starter protocol in template/ carries this, and it is DOI-shaped, so the pattern above passes
+# it. A copied template is the likeliest wrong citation there is, so name it outright.
+template_placeholder_citation <- "10.0000/replace-with-a-real-doi"
 semver_pattern <- "^[0-9]+\\.[0-9]+\\.[0-9]+$"
 date_pattern <- "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 version_heading_pattern <- "^###[[:space:]]+Version[[:space:]]+([^[:space:]]+)[[:space:]]+\\(([0-9]{4}-[0-9]{2}-[0-9]{2})\\)[[:space:]]*$"
@@ -385,38 +404,92 @@ validate_protocol <- function(file_path) {
     return(FALSE)
   }
   
+  # Everything from here accumulates into 'errors' rather than returning on the first problem, so a
+  # contributor sees every violation in one CI round-trip instead of one per push. The two checks
+  # above stay fatal: without parseable frontmatter, or with a required field missing, the checks
+  # below would report confusing consequences of a problem already named.
+  errors <- character(0)
+  body <- readLines(file_path, warn = FALSE)
+
   # Check directory structure matches name
   dir_name <- basename(dirname(file_path))
   if (dir_name != frontmatter$name) {
-    cat(sprintf("  [ERROR] Directory name '%s' does not match protocol name '%s'\n", dir_name, frontmatter$name))
-    return(FALSE)
+    errors <- c(errors, sprintf("Directory name '%s' does not match protocol name '%s'",
+                                dir_name, frontmatter$name))
   }
-  
+
+  # A guard that only *skips* on the wrong type lets the wrong type through: an unquoted `name: 123`
+  # parses to a number, matches a '123/' directory, and never reaches the pattern below.
+  if (!is.character(frontmatter$name) || length(frontmatter$name) != 1) {
+    errors <- c(errors, sprintf("'name' must be a single string, found: %s of length %d",
+                                class(frontmatter$name)[1], length(frontmatter$name)))
+  } else if (!grepl(kebab_case_pattern, frontmatter$name)) {
+    errors <- c(errors, sprintf(
+      "'name' must be kebab-case: lowercase letters and digits separated by single hyphens. Found '%s'",
+      frontmatter$name))
+  }
+
   # Check authors format
   if (!is.list(frontmatter$authors) || length(frontmatter$authors) == 0) {
-    cat("  [ERROR] 'authors' must be a non-empty list of objects\n")
-    return(FALSE)
-  }
-  
-  for (author in frontmatter$authors) {
-    if (is.null(author$name)) {
-      cat("  [ERROR] All authors must have a 'name' field\n")
-      return(FALSE)
+    errors <- c(errors, "'authors' must be a non-empty list of objects")
+  } else {
+    for (author in frontmatter$authors) {
+      if (is.null(author$name)) {
+        errors <- c(errors, "All authors must have a 'name' field")
+      }
+      # An author ORCID is recommended, not required, so its absence is fine. A malformed one is
+      # not: it is a claim about a specific named person that resolves to nobody. Reviewer ORCIDs
+      # were already checked this way; this is the same field in the other place it appears.
+      author_label <- if (is.null(author$name)) "?" else author$name
+      if (!is.null(author$orcid)) {
+        # Type and length first: `&&` reads only the first element, so a list of ORCIDs would be
+        # judged on its first entry and a malformed second one never reported.
+        if (!is.character(author$orcid) || length(author$orcid) != 1) {
+          errors <- c(errors, sprintf("Author '%s' must have a single 'orcid' string", author_label))
+        } else if (!grepl(orcid_pattern, author$orcid)) {
+          errors <- c(errors, sprintf("Author '%s' has a malformed ORCID: '%s'",
+                                      author_label, author$orcid))
+        }
+      }
     }
   }
-  
+
+  if (!is.character(frontmatter$status) || length(frontmatter$status) != 1 ||
+      !frontmatter$status %in% protocol_statuses) {
+    errors <- c(errors, sprintf("'status' must be one of %s, found: '%s'",
+                                paste(sprintf("'%s'", protocol_statuses), collapse = ", "),
+                                paste(frontmatter$status, collapse = ", ")))
+  }
+
   # Check type field if present
-  if (!is.null(frontmatter$type)) {
-    if (!frontmatter$type %in% c("atomic", "composite")) {
-      cat(sprintf("  [ERROR] 'type' must be either 'atomic' or 'composite', found: '%s'\n", frontmatter$type))
-      return(FALSE)
-    }
+  if (!is.null(frontmatter$type) && !frontmatter$type %in% c("atomic", "composite")) {
+    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found: '%s'",
+                                frontmatter$type))
   }
-  
+
+  # 'type' is optional, so infer it the way a reader would when it is absent: a protocol that
+  # composes others is composite, and one that composes nothing is atomic.
+  n_deps <- if (is.null(frontmatter$protocols_used)) 0L else length(frontmatter$protocols_used)
+  effective_type <- if (!is.null(frontmatter$type)) frontmatter$type else {
+    if (n_deps > 0) "composite" else "atomic"
+  }
+
+  # The two halves of ADR 0004's definition, each stated in PROTOCOL_STANDARD.md and neither
+  # previously enforced.
+  if (identical(frontmatter$type, "atomic") && n_deps > 0) {
+    errors <- c(errors, sprintf(
+      "'type: atomic' cannot declare 'protocols_used' (%d listed); an atomic protocol composes no others",
+      n_deps))
+  }
+  if (identical(frontmatter$type, "composite") && n_deps == 0) {
+    errors <- c(errors, "'type: composite' requires a non-empty 'protocols_used'; a composite composes other protocols")
+  }
+
   # Check method_citation field
-  if (!is.null(frontmatter$citations)) {
-    cat(sprintf("  [ERROR] Deprecated 'citations' field found in '%s'. Use 'method_citation' (singular string).\n", frontmatter$name))
-    return(FALSE)
+  # Presence, not value: `citations: ~` parses to NULL, so a value check would let the deprecated
+  # key through. Same reasoning as the renamed-field loop below.
+  if ("citations" %in% names(frontmatter)) {
+    errors <- c(errors, "Deprecated 'citations' field found. Use 'method_citation' (singular string)")
   }
 
   # Fields renamed so that each name says what it identifies (ADR 0009).
@@ -431,27 +504,55 @@ validate_protocol <- function(file_path) {
     # Presence, not value: a YAML null placeholder such as `protocol_doi: ~` parses to NULL, and the
     # pre-rename template used exactly that spelling, so a value check would let old names through.
     if (old_name %in% names(frontmatter)) {
-      cat(sprintf("  [ERROR] Field '%s' was renamed to '%s' (see PROTOCOL_STANDARD.md) in '%s'\n",
-                  old_name, renamed_fields[[old_name]], frontmatter$name))
-      return(FALSE)
+      errors <- c(errors, sprintf("Field '%s' was renamed to '%s' (see PROTOCOL_STANDARD.md)",
+                                  old_name, renamed_fields[[old_name]]))
     }
   }
-  
+
   # A composite may carry a method_citation: a sequence of methods can itself be published as a
-  # method. Whether it should is a judgement about the literature, not something to validate.
-  if ("method_citation" %in% names(frontmatter)) {
-    if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
-      cat(sprintf("  [ERROR] 'method_citation' must be a single string (DOI or PMID) in '%s'\n", frontmatter$name))
-      return(FALSE)
+  # method (ADR 0010). Whether it should is a judgement about the literature, not something to
+  # validate. An atomic protocol is one method, so it must carry one.
+  has_citation <- "method_citation" %in% names(frontmatter)
+  if (!has_citation) {
+    if (effective_type == "atomic") {
+      errors <- c(errors, "An atomic protocol must carry a 'method_citation' naming the primary literature where the method was first proposed")
+    }
+  } else if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
+    errors <- c(errors, "'method_citation' must be a single string (DOI or PMID)")
+  } else if (identical(frontmatter$method_citation, template_placeholder_citation)) {
+    errors <- c(errors, sprintf("'method_citation' is still the template placeholder '%s'; replace it with the real citation",
+                                template_placeholder_citation))
+  } else if (!grepl(citation_pattern, frontmatter$method_citation)) {
+    errors <- c(errors, sprintf("'method_citation' must be a DOI ('10.1000/xyz') or a PubMed ID ('PMID:12345678'), found: '%s'",
+                                frontmatter$method_citation))
+  }
+
+  # The body sections. PROTOCOL_STANDARD.md requires '## Materials' and '## Steps' with at least one
+  # '### Step': a document with neither is not a protocol, however complete its metadata is.
+  if (length(grep("^##[[:space:]]+Materials[[:space:]]*$", body)) == 0) {
+    errors <- c(errors, "Missing required '## Materials' section (see PROTOCOL_STANDARD.md)")
+  }
+  step_heading <- grep("^##[[:space:]]+Steps[[:space:]]*$", body)
+  if (length(step_heading) == 0) {
+    errors <- c(errors, "Missing required '## Steps' section (see PROTOCOL_STANDARD.md)")
+  } else {
+    # Only this section's own headings count. Searching the whole document would let a '### Step'
+    # under '## Notes' satisfy an empty '## Steps'. The trailing boundary keeps '### Steps' — a
+    # plausible typo for the section heading itself — from passing as a step.
+    after <- body[(step_heading[1] + 1):length(body)]
+    next_section <- grep("^##[[:space:]]", after)
+    section <- if (length(next_section) > 0) after[seq_len(next_section[1] - 1)] else after
+    if (length(grep("^###[[:space:]]+Step([[:space:]]|:)", section)) == 0) {
+      errors <- c(errors, "'## Steps' contains no '### Step' heading; a protocol must have at least one step")
     }
   }
-  
+
   # Check protocols_used structure for composite/dependent protocols
-  if (!is.null(frontmatter$protocols_used) && length(frontmatter$protocols_used) > 0) {
+  if (n_deps > 0) {
     for (dep in frontmatter$protocols_used) {
       if (is.null(dep$name) || is.null(dep$repository) || is.null(dep$version)) {
-        cat(sprintf("  [ERROR] Each entry in 'protocols_used' must have 'name', 'repository', and 'version'\n"))
-        return(FALSE)
+        errors <- c(errors, "Each entry in 'protocols_used' must have 'name', 'repository', and 'version'")
+        next
       }
       # Check local repository dependencies
       if (is.na(this_repository)) {
@@ -459,17 +560,22 @@ validate_protocol <- function(file_path) {
       } else if (dep$repository == this_repository) {
         dep_path <- file.path(protocols_dir, dep$name, "protocol.md")
         if (!file.exists(dep_path)) {
-          cat(sprintf("  [ERROR] Dependent protocol '%s' not found at '%s'\n", dep$name, dep_path))
-          return(FALSE)
+          errors <- c(errors, sprintf("Dependent protocol '%s' not found at '%s'", dep$name, dep_path))
         }
       }
     }
   }
-  
-  # Check the '## History & Reviews' feed and the frontmatter 'reviews' array
-  if (!validate_history(file_path, frontmatter)) {
-    return(FALSE)
+
+  for (msg in errors) {
+    cat(sprintf("  [ERROR] %s in '%s'\n", msg, frontmatter$name))
   }
+
+  # Check the '## History & Reviews' feed and the frontmatter 'reviews' array. It reports its own
+  # errors, and collects them the same way, so a history problem and a frontmatter problem surface
+  # together rather than one release apart.
+  history_ok <- validate_history(file_path, frontmatter)
+
+  if (length(errors) > 0 || !history_ok) return(FALSE)
 
   cat("  [OK] Valid.\n")
   return(TRUE)
