@@ -67,6 +67,25 @@ semver_pattern <- "^[0-9]+\\.[0-9]+\\.[0-9]+$"
 date_pattern <- "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 version_heading_pattern <- "^###[[:space:]]+Version[[:space:]]+([^[:space:]]+)[[:space:]]+\\(([0-9]{4}-[0-9]{2}-[0-9]{2})\\)[[:space:]]*$"
 
+# YAML gives a field whatever shape the author wrote: a string, a number, a list, a mapping, or
+# NULL for `field: ~`. Nearly every check here needs the same question answered — is this one
+# string? — and answering it inline per field is what let `name: ~`, `name: [a, b]` and
+# `type: [atomic, composite]` each abort the run in turn, one field at a time.
+scalar_string <- function(x) is.character(x) && length(x) == 1L && !is.na(x)
+
+# A value's description for an error message. Never coerces: as.character() on a mapping deparses
+# it into something that reads like a value the author wrote ("found: 'atomic'" for
+# `type: {value: atomic}`), and on other shapes it can fail outright — inside the very message
+# meant to report the bad shape.
+describe_value <- function(x) {
+  if (is.null(x)) return("nothing (the field is empty or `~`)")
+  if (scalar_string(x)) return(sprintf("'%s'", x))
+  if (is.list(x)) return(sprintf("a %s of %d element(s)",
+                                 if (!is.null(names(x))) "mapping" else "list", length(x)))
+  if (length(x) != 1L) return(sprintf("%d values", length(x)))
+  sprintf("a %s ('%s')", class(x)[1], tryCatch(format(x), error = function(e) "?"))
+}
+
 # Drops YAML frontmatter and fenced code blocks, so that a heading shown inside a worked example
 # is not mistaken for the document's own. A protocol whose '## Steps' exists only inside a ```markdown
 # illustration has no steps.
@@ -74,6 +93,7 @@ strip_frontmatter_and_code <- function(lines) {
   keep <- rep(TRUE, length(lines))
   in_fence <- FALSE
   fence <- NULL
+  fence_length <- 0L
   in_frontmatter <- FALSE
   for (i in seq_along(lines)) {
     line <- lines[i]
@@ -88,18 +108,31 @@ strip_frontmatter_and_code <- function(lines) {
       if (grepl("^(---|\\.\\.\\.)[[:space:]]*$", line)) in_frontmatter <- FALSE
       next
     }
-    # A fence closes only on the marker that opened it, so ``` inside a ~~~ block is content.
+    # CommonMark's rule, not an approximation of it: a closing fence uses the same character as
+    # the opener, is at least as long, and carries nothing but whitespace after it. Recording only
+    # the character let a lone ``` close a ```` block, and ignoring the suffix let ```not-a-close
+    # close one — either way the rest of the example leaked out as prose and satisfied the
+    # structural checks it was supposed to fail.
     marker <- regmatches(line, regexpr("^[[:space:]]{0,3}(`{3,}|~{3,})", line))
     if (length(marker) == 1) {
-      token <- substr(trimws(marker), 1, 1)
+      run <- trimws(marker)
+      token <- substr(run, 1, 1)
+      run_length <- nchar(run)
+      suffix <- sub("^[[:space:]]{0,3}(`{3,}|~{3,})", "", line)
       if (!in_fence) {
-        in_fence <- TRUE
-        fence <- token
-        keep[i] <- FALSE
-        next
-      } else if (identical(token, fence)) {
+        # An opening backtick fence's info string may not contain a backtick; otherwise anything.
+        if (!identical(token, "`") || !grepl("`", suffix, fixed = TRUE)) {
+          in_fence <- TRUE
+          fence <- token
+          fence_length <- run_length
+          keep[i] <- FALSE
+          next
+        }
+      } else if (identical(token, fence) && run_length >= fence_length &&
+                 grepl("^[[:space:]]*$", suffix)) {
         in_fence <- FALSE
         fence <- NULL
+        fence_length <- 0L
         keep[i] <- FALSE
         next
       }
@@ -457,7 +490,7 @@ validate_protocol <- function(file_path) {
   # one reaching the `if` below aborts the whole run with an R error rather than reporting the
   # problem through the accumulated path — taking every other protocol's report down with it.
   dir_name <- basename(dirname(file_path))
-  name_is_scalar_string <- is.character(frontmatter$name) && length(frontmatter$name) == 1
+  name_is_scalar_string <- scalar_string(frontmatter$name)
 
   # Check directory structure matches name
   if (name_is_scalar_string && dir_name != frontmatter$name) {
@@ -468,8 +501,8 @@ validate_protocol <- function(file_path) {
   # A guard that only *skips* on the wrong type lets the wrong type through: an unquoted `name: 123`
   # parses to a number, matches a '123/' directory, and never reaches the pattern below.
   if (!name_is_scalar_string) {
-    errors <- c(errors, sprintf("'name' must be a single string, found: %s of length %d",
-                                class(frontmatter$name)[1], length(frontmatter$name)))
+    errors <- c(errors, sprintf("'name' must be a single string, found %s",
+                                describe_value(frontmatter$name)))
   } else if (!grepl(kebab_case_pattern, frontmatter$name)) {
     errors <- c(errors, sprintf(
       "'name' must be kebab-case: lowercase letters and digits separated by single hyphens. Found '%s'",
@@ -487,12 +520,13 @@ validate_protocol <- function(file_path) {
       # An author ORCID is recommended, not required, so its absence is fine. A malformed one is
       # not: it is a claim about a specific named person that resolves to nobody. Reviewer ORCIDs
       # were already checked this way; this is the same field in the other place it appears.
-      author_label <- if (is.null(author$name)) "?" else author$name
+      author_label <- if (scalar_string(author$name)) author$name else "?"
       if (!is.null(author$orcid)) {
         # Type and length first: `&&` reads only the first element, so a list of ORCIDs would be
         # judged on its first entry and a malformed second one never reported.
-        if (!is.character(author$orcid) || length(author$orcid) != 1) {
-          errors <- c(errors, sprintf("Author '%s' must have a single 'orcid' string", author_label))
+        if (!scalar_string(author$orcid)) {
+          errors <- c(errors, sprintf("Author '%s' must have a single 'orcid' string, found %s",
+                                      author_label, describe_value(author$orcid)))
         } else if (!grepl(orcid_pattern, author$orcid)) {
           errors <- c(errors, sprintf("Author '%s' has a malformed ORCID: '%s'",
                                       author_label, author$orcid))
@@ -501,19 +535,26 @@ validate_protocol <- function(file_path) {
     }
   }
 
-  if (!is.character(frontmatter$status) || length(frontmatter$status) != 1 ||
-      !frontmatter$status %in% protocol_statuses) {
-    errors <- c(errors, sprintf("'status' must be one of %s, found: '%s'",
+  for (field in c("description", "version")) {
+    if (!scalar_string(frontmatter[[field]])) {
+      errors <- c(errors, sprintf("'%s' must be a single string, found %s",
+                                  field, describe_value(frontmatter[[field]])))
+    } else if (!nzchar(trimws(frontmatter[[field]]))) {
+      errors <- c(errors, sprintf("'%s' is required and must not be blank", field))
+    }
+  }
+
+  if (!scalar_string(frontmatter$status) || !frontmatter$status %in% protocol_statuses) {
+    errors <- c(errors, sprintf("'status' must be one of %s, found %s",
                                 paste(sprintf("'%s'", protocol_statuses), collapse = ", "),
-                                paste(frontmatter$status, collapse = ", ")))
+                                describe_value(frontmatter$status)))
   }
 
   # Check type field if present
-  type_is_valid <- is.character(frontmatter$type) && length(frontmatter$type) == 1 &&
-    frontmatter$type %in% c("atomic", "composite")
-  if (!is.null(frontmatter$type) && !type_is_valid) {
-    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found: %s",
-                                paste(sprintf("'%s'", as.character(frontmatter$type)), collapse = ", ")))
+  type_is_valid <- scalar_string(frontmatter$type) && frontmatter$type %in% c("atomic", "composite")
+  if ("type" %in% names(frontmatter) && !type_is_valid) {
+    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found %s",
+                                describe_value(frontmatter$type)))
   }
 
   # 'type' is optional, so infer it the way a reader would when it is absent: a protocol that
@@ -568,8 +609,9 @@ validate_protocol <- function(file_path) {
     if (effective_type == "atomic") {
       errors <- c(errors, "An atomic protocol must carry a 'method_citation' naming the primary literature where the method was first proposed")
     }
-  } else if (!is.character(frontmatter$method_citation) || length(frontmatter$method_citation) != 1) {
-    errors <- c(errors, "'method_citation' must be a single string (DOI or PMID)")
+  } else if (!scalar_string(frontmatter$method_citation)) {
+    errors <- c(errors, sprintf("'method_citation' must be a single string (DOI or PMID), found %s",
+                                describe_value(frontmatter$method_citation)))
   } else if (identical(frontmatter$method_citation, template_placeholder_citation)) {
     errors <- c(errors, sprintf("'method_citation' is still the template placeholder '%s'; replace it with the real citation",
                                 template_placeholder_citation))

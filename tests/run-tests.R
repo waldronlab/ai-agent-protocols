@@ -16,6 +16,8 @@
 #
 #   2. tests/test-repo-utils.R  — unit tests for the repository and ref detection helpers.
 #   3. tests/test-generator.R   — the index generator's output and its refusals.
+#   4. tests/test-malformed-values.R — every frontmatter field against every shape YAML can
+#      produce, asserting the validator reports rather than crashes.
 
 tests_dir <- local({
   args <- commandArgs(trailingOnly = FALSE)
@@ -156,6 +158,7 @@ for (run in empty_runs) {
   }
 }
 
+source(file.path(tests_dir, "test-malformed-values.R"))
 source(file.path(tests_dir, "test-repo-utils.R"))
 source(file.path(tests_dir, "test-generator.R"))
 
