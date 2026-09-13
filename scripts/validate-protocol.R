@@ -67,6 +67,48 @@ semver_pattern <- "^[0-9]+\\.[0-9]+\\.[0-9]+$"
 date_pattern <- "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 version_heading_pattern <- "^###[[:space:]]+Version[[:space:]]+([^[:space:]]+)[[:space:]]+\\(([0-9]{4}-[0-9]{2}-[0-9]{2})\\)[[:space:]]*$"
 
+# Drops YAML frontmatter and fenced code blocks, so that a heading shown inside a worked example
+# is not mistaken for the document's own. A protocol whose '## Steps' exists only inside a ```markdown
+# illustration has no steps.
+strip_frontmatter_and_code <- function(lines) {
+  keep <- rep(TRUE, length(lines))
+  in_fence <- FALSE
+  fence <- NULL
+  in_frontmatter <- FALSE
+  for (i in seq_along(lines)) {
+    line <- lines[i]
+    # Frontmatter only when the file opens with it.
+    if (!in_fence && i == 1 && grepl("^---[[:space:]]*$", line)) {
+      in_frontmatter <- TRUE
+      keep[i] <- FALSE
+      next
+    }
+    if (in_frontmatter) {
+      keep[i] <- FALSE
+      if (grepl("^(---|\\.\\.\\.)[[:space:]]*$", line)) in_frontmatter <- FALSE
+      next
+    }
+    # A fence closes only on the marker that opened it, so ``` inside a ~~~ block is content.
+    marker <- regmatches(line, regexpr("^[[:space:]]{0,3}(`{3,}|~{3,})", line))
+    if (length(marker) == 1) {
+      token <- substr(trimws(marker), 1, 1)
+      if (!in_fence) {
+        in_fence <- TRUE
+        fence <- token
+        keep[i] <- FALSE
+        next
+      } else if (identical(token, fence)) {
+        in_fence <- FALSE
+        fence <- NULL
+        keep[i] <- FALSE
+        next
+      }
+    }
+    if (in_fence) keep[i] <- FALSE
+  }
+  lines[keep]
+}
+
 # "Jane Doe ([0000-...](https://orcid.org/0000-...))" -> "Jane Doe"
 strip_orcid_suffix <- function(x) trimws(sub("[[:space:]]*\\(\\[.*\\]\\(.*\\)\\)$", "", x))
 
@@ -411,16 +453,21 @@ validate_protocol <- function(file_path) {
   errors <- character(0)
   body <- readLines(file_path, warn = FALSE)
 
-  # Check directory structure matches name
+  # Shape before comparison. `name: ~` parses to NULL and `name: [a, b]` to a vector, and either
+  # one reaching the `if` below aborts the whole run with an R error rather than reporting the
+  # problem through the accumulated path — taking every other protocol's report down with it.
   dir_name <- basename(dirname(file_path))
-  if (dir_name != frontmatter$name) {
+  name_is_scalar_string <- is.character(frontmatter$name) && length(frontmatter$name) == 1
+
+  # Check directory structure matches name
+  if (name_is_scalar_string && dir_name != frontmatter$name) {
     errors <- c(errors, sprintf("Directory name '%s' does not match protocol name '%s'",
                                 dir_name, frontmatter$name))
   }
 
   # A guard that only *skips* on the wrong type lets the wrong type through: an unquoted `name: 123`
   # parses to a number, matches a '123/' directory, and never reaches the pattern below.
-  if (!is.character(frontmatter$name) || length(frontmatter$name) != 1) {
+  if (!name_is_scalar_string) {
     errors <- c(errors, sprintf("'name' must be a single string, found: %s of length %d",
                                 class(frontmatter$name)[1], length(frontmatter$name)))
   } else if (!grepl(kebab_case_pattern, frontmatter$name)) {
@@ -462,15 +509,19 @@ validate_protocol <- function(file_path) {
   }
 
   # Check type field if present
-  if (!is.null(frontmatter$type) && !frontmatter$type %in% c("atomic", "composite")) {
-    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found: '%s'",
-                                frontmatter$type))
+  type_is_valid <- is.character(frontmatter$type) && length(frontmatter$type) == 1 &&
+    frontmatter$type %in% c("atomic", "composite")
+  if (!is.null(frontmatter$type) && !type_is_valid) {
+    errors <- c(errors, sprintf("'type' must be either 'atomic' or 'composite', found: %s",
+                                paste(sprintf("'%s'", as.character(frontmatter$type)), collapse = ", ")))
   }
 
   # 'type' is optional, so infer it the way a reader would when it is absent: a protocol that
-  # composes others is composite, and one that composes nothing is atomic.
+  # composes others is composite, and one that composes nothing is atomic. Inferred rather than
+  # trusted whenever `type` is not one valid scalar, so that `type: [atomic, composite]` reports a
+  # type error instead of reaching a length-2 `if` condition and aborting the run.
   n_deps <- if (is.null(frontmatter$protocols_used)) 0L else length(frontmatter$protocols_used)
-  effective_type <- if (!is.null(frontmatter$type)) frontmatter$type else {
+  effective_type <- if (type_is_valid) frontmatter$type else {
     if (n_deps > 0) "composite" else "atomic"
   }
 
@@ -529,20 +580,24 @@ validate_protocol <- function(file_path) {
 
   # The body sections. PROTOCOL_STANDARD.md requires '## Materials' and '## Steps' with at least one
   # '### Step': a document with neither is not a protocol, however complete its metadata is.
-  if (length(grep("^##[[:space:]]+Materials[[:space:]]*$", body)) == 0) {
+  # Checked against the prose only — a protocol whose sections appear solely inside a fenced
+  # example has none.
+  prose <- strip_frontmatter_and_code(body)
+  if (length(grep("^##[[:space:]]+Materials[[:space:]]*$", prose)) == 0) {
     errors <- c(errors, "Missing required '## Materials' section (see PROTOCOL_STANDARD.md)")
   }
-  step_heading <- grep("^##[[:space:]]+Steps[[:space:]]*$", body)
+  step_heading <- grep("^##[[:space:]]+Steps[[:space:]]*$", prose)
   if (length(step_heading) == 0) {
     errors <- c(errors, "Missing required '## Steps' section (see PROTOCOL_STANDARD.md)")
   } else {
     # Only this section's own headings count. Searching the whole document would let a '### Step'
     # under '## Notes' satisfy an empty '## Steps'. The trailing boundary keeps '### Steps' — a
-    # plausible typo for the section heading itself — from passing as a step.
-    after <- body[(step_heading[1] + 1):length(body)]
+    # plausible typo for the section heading itself — from passing as a step, while still
+    # admitting a bare '### Step', which the standard does not forbid.
+    after <- prose[(step_heading[1] + 1):length(prose)]
     next_section <- grep("^##[[:space:]]", after)
     section <- if (length(next_section) > 0) after[seq_len(next_section[1] - 1)] else after
-    if (length(grep("^###[[:space:]]+Step([[:space:]]|:)", section)) == 0) {
+    if (length(grep("^###[[:space:]]+Step([[:space:]]|:|$)", section)) == 0) {
       errors <- c(errors, "'## Steps' contains no '### Step' heading; a protocol must have at least one step")
     }
   }
@@ -566,8 +621,12 @@ validate_protocol <- function(file_path) {
     }
   }
 
+  # sprintf() with a zero-length argument returns character(0), so a `name: ~` would have printed
+  # no errors at all — every message silently dropped by the line meant to report them. The
+  # directory is always available and is what the reader needs to find the file anyway.
+  display_name <- if (name_is_scalar_string) frontmatter$name else dir_name
   for (msg in errors) {
-    cat(sprintf("  [ERROR] %s in '%s'\n", msg, frontmatter$name))
+    cat(sprintf("  [ERROR] %s in '%s'\n", msg, display_name))
   }
 
   # Check the '## History & Reviews' feed and the frontmatter 'reviews' array. It reports its own

@@ -111,8 +111,12 @@ if (!dir.exists(template_protocols)) {
   failures <- c(failures, "template")
 } else {
   result <- run_validator(template_protocols)
-  other_errors <- grep("\\[ERROR\\]", strsplit(result$output, "\n")[[1]], value = TRUE)
+  output_lines <- strsplit(result$output, "\n")[[1]]
+  other_errors <- grep("\\[ERROR\\]", output_lines, value = TRUE)
   other_errors <- other_errors[!grepl(template_expected, other_errors, fixed = TRUE)]
+  # An uncaught R error carries no [ERROR] prefix, so counting prefixed lines alone would report a
+  # pass for a validator that emitted the placeholder message and then crashed.
+  crashes <- grep("^Error|Execution halted", output_lines, value = TRUE)
   if (result$status == 0) {
     cat("  [FAIL] template/protocols: expected the placeholder citation to be rejected, but it passed\n")
     failures <- c(failures, "template")
@@ -122,9 +126,9 @@ if (!dir.exists(template_protocols)) {
     cat(sprintf("  [FAIL] template/protocols: failed, but not on its placeholder citation\n%s\n",
                 result$output))
     failures <- c(failures, "template")
-  } else if (length(other_errors) > 0) {
+  } else if (length(other_errors) > 0 || length(crashes) > 0) {
     cat(sprintf("  [FAIL] template/protocols: the starter protocol does not conform, beyond its placeholder citation\n%s\n",
-                paste(other_errors, collapse = "\n")))
+                paste(c(other_errors, crashes), collapse = "\n")))
     failures <- c(failures, "template")
   } else {
     cat("  [PASS] template/protocols fails only on its placeholder citation\n")
